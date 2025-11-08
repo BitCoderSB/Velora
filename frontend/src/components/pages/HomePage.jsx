@@ -12,6 +12,23 @@ export default function HomePage({ onBack }) {
   ];
   
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMovements, setShowMovements] = useState(false);
+  
+  // Ejemplo de notificaciones
+  const notifications = [
+    { id: 1, message: "Nueva transacción recibida: 50 USD", time: "Hace 5 min", unread: true },
+    { id: 2, message: "Transferencia completada exitosamente", time: "Hace 1 hora", unread: true },
+    { id: 3, message: "Tu wallet ha sido actualizada", time: "Hace 2 horas", unread: false },
+  ];
+  
+  // Movimientos recientes
+  const recentMovements = [
+    { id: 1, title: 'Recibido 50 USD', subtitle: 'Hace 5 minutos', amount: '+50 USD', type: 'income' },
+    { id: 2, title: 'Enviado 20 USD', subtitle: 'Hace 1 hora', amount: '-20 USD', type: 'expense' },
+    { id: 3, title: 'Pago completado', subtitle: 'Hace 2 días', amount: '+100 USD', type: 'income' },
+    { id: 4, title: 'Transferencia a cuenta externa', subtitle: 'Hace 3 días', amount: '-75 USD', type: 'expense' },
+  ];
   
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,37 +42,125 @@ export default function HomePage({ onBack }) {
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-white">
       {/* Top Navigation Panel */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-center">
-          <motion.h2 
-            className="text-2xl font-bold"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <motion.span 
-              className="bg-clip-text text-transparent inline-block"
-              animate={{
-                backgroundImage: [
-                  'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                  'linear-gradient(to right, #98FB98, #F0E68C, #FF7F50)',
-                  'linear-gradient(to right, #DDA0DD, #98FB98, #F0E68C)',
-                  'linear-gradient(to right, #F0E68C, #FF7F50, #DDA0DD)',
-                  'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                ],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "linear"
-              }}
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          {/* Left side: Logo + Greeting */}
+          <div className="flex items-center space-x-4">
+            {/* Logo Placeholder */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="w-12 h-12 rounded-full flex items-center justify-center"
               style={{ 
-                WebkitTextStroke: '1px black',
-                paintOrder: 'stroke fill'
+                background: 'linear-gradient(135deg, #FF7F50, #DDA0DD)',
+                boxShadow: '0 4px 10px rgba(255, 127, 80, 0.3)'
               }}
             >
-              Velora
-            </motion.span>
-          </motion.h2>
+              <span className="text-white text-xl font-bold">V</span>
+            </motion.div>
+            
+            {/* Greeting */}
+            <motion.h2
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-xl font-bold text-slate-900"
+            >
+              Hola, Usuario
+            </motion.h2>
+          </div>
+          
+          {/* Right side: Notifications Bell */}
+          <div className="relative">
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              onClick={() => setShowNotifications(!showNotifications)}
+              onMouseEnter={() => setShowNotifications(true)}
+              className="relative p-3 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              {/* Bell Icon */}
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-6 w-6 text-slate-700" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" 
+                />
+              </svg>
+              
+              {/* Notification badge */}
+              {notifications.filter(n => n.unread).length > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
+            </motion.button>
+            
+            {/* Notifications Panel */}
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  onMouseLeave={() => setShowNotifications(false)}
+                  className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden"
+                  style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}
+                >
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                    <h3 className="font-bold text-slate-900">Notificaciones</h3>
+                  </div>
+                  
+                  {/* Notifications List */}
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <motion.div
+                          key={notification.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors ${
+                            notification.unread ? 'bg-blue-50/50' : ''
+                          }`}
+                        >
+                          <div className="flex items-start space-x-3">
+                            {notification.unread && (
+                              <div className="w-2 h-2 rounded-full bg-coral-500 mt-2 flex-shrink-0" style={{ backgroundColor: '#FF7F50' }} />
+                            )}
+                            <div className="flex-1">
+                              <p className="text-sm text-slate-800">{notification.message}</p>
+                              <p className="text-xs text-slate-500 mt-1">{notification.time}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center text-slate-500">
+                        <p>No tienes notificaciones</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
+                      <button className="text-sm text-slate-600 hover:text-slate-900 font-medium w-full text-center">
+                        Ver todas las notificaciones
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </nav>
 
@@ -104,121 +209,294 @@ export default function HomePage({ onBack }) {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,127,80,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,127,80,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
 
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 pt-24">
-        <div className="max-w-6xl mx-auto text-center">
-          
-          {/* Header */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            className="mb-16"
-          >
-            
-            {/* Main heading with gradient text */}
-            <h1 className="text-6xl md:text-7xl font-bold mb-6 text-center">
-              <motion.span 
-                className="bg-clip-text text-transparent inline-block"
-                animate={{
-                  backgroundImage: [
-                    'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                    'linear-gradient(to right, #98FB98, #F0E68C, #FF7F50)',
-                    'linear-gradient(to right, #DDA0DD, #98FB98, #F0E68C)',
-                    'linear-gradient(to right, #F0E68C, #FF7F50, #DDA0DD)',
-                    'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                  ],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-                style={{ 
-                  WebkitTextStroke: '1.5px black',
-                  paintOrder: 'stroke fill'
-                }}
-              >
-                Bienvenido
-              </motion.span>
-            </h1>
-            
-            <div className="text-xl md:text-2xl text-slate-700 font-light max-w-3xl mx-auto leading-relaxed h-24 flex items-center justify-center">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={currentPhraseIndex}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {phrases[currentPhraseIndex]}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-          </motion.div>
+      {/* Main content - Full page card */}
+      <div className="relative z-10 min-h-screen pt-24 pb-8 px-6">
+        {/* Background with gradient - Full page */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          className="absolute inset-0 mt-20"
+          style={{ 
+            background: 'linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #F0E68C 100%)',
+          }}
+        >
+          {/* Decorative elements */}
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl" 
+               style={{ background: 'radial-gradient(circle, #FFB6C1, transparent)' }} />
+          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl" 
+               style={{ background: 'radial-gradient(circle, #F0E68C, transparent)' }} />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full opacity-15 blur-3xl" 
+               style={{ background: 'radial-gradient(circle, #FFE5B4, transparent)' }} />
+        </motion.div>
 
-          {/* Content Card */}
-          <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="mb-16 max-w-2xl mx-auto"
-          >
-            <ProximityGlow className="rounded-2xl" c1="rgba(255,127,80,0.3)" c2="rgba(221,160,221,0.25)">
-              <div className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-12 shadow-lg" style={{ borderColor: 'rgba(255, 127, 80, 0.4)' }}>
-                {/* Background gradient */}
-                <div className="absolute inset-0 opacity-20" style={{ background: 'linear-gradient(to bottom right, rgba(255, 127, 80, 0.2), rgba(255, 99, 71, 0.2))' }} />
-                
-                {/* Content */}
-                <div className="relative z-10 text-center">
-                  <h2 className="text-3xl font-bold text-slate-900 mb-6">
-                    Esta es tu página principal
-                  </h2>
-                  <p className="text-lg text-slate-600 mb-8">
-                    Aquí puedes gestionar tu wallet, ver tus transacciones y conectar con diferentes redes.
-                  </p>
-                  
-                  {/* Back Button */}
-                  <button
-                    onClick={onBack}
-                    className="px-6 py-3 text-slate-700 font-semibold hover:text-slate-900 transition-colors"
+        {/* White card surface - Full page content */}
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+          className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 mx-auto max-w-7xl"
+          style={{ minHeight: 'calc(100vh - 120px)' }}
+        >
+          <div className="p-8 md:p-12 flex flex-col min-h-full">
+            
+            {/* Header — solo frase rotativa (sin 'Bienvenido') */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
+              className="mb-6 text-center"
+            >
+              <div className="text-2xl md:text-3xl text-gray-900 font-light max-w-3xl mx-auto leading-relaxed h-24 flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentPhraseIndex}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.45 }}
+                    className="px-4"
                   >
-                    ← Volver al login
-                  </button>
+                    {phrases[currentPhraseIndex]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Action Circles - Inside white card */}
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="mb-8"
+            >
+              <div className="flex justify-center items-center gap-12 md:gap-16">
+                
+                  {/* Transferir */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex flex-col items-center cursor-pointer group"
+                  >
+                    <div 
+                      className="w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-xl border-black"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-16 w-16 text-white" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" 
+                        />
+                      </svg>
+                    </div>
+                    <p className="mt-4 text-xl font-bold text-gray-900">Transferir</p>
+                  </motion.div>
+
+                  {/* Cobrar */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex flex-col items-center cursor-pointer group"
+                  >
+                    <div 
+                      className="w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-xl border-black"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-16 w-16 text-white" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                        />
+                      </svg>
+                    </div>
+                    <p className="mt-4 text-xl font-bold text-gray-900">Cobrar</p>
+                  </motion.div>
+
+                  {/* Tu Cuenta */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex flex-col items-center cursor-pointer group"
+                  >
+                    <div 
+                      className="w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-xl border-black"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-16 w-16 text-white" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                        />
+                      </svg>
+                    </div>
+                    <p className="mt-4 text-xl font-bold text-gray-900">Tu Cuenta</p>
+                  </motion.div>              </div>
+            </motion.div>
+
+            {/* Movimientos Recientes - Panel Colapsable */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="mt-8 max-w-4xl mx-auto w-full"
+            >
+              <div className="bg-white border-2 border-gray-300 rounded-2xl shadow-lg overflow-hidden">
+                {/* Header del panel - Clickeable */}
+                <button
+                  onClick={() => setShowMovements(!showMovements)}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors duration-200 group"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-5 w-5 text-white" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-black transition-colors">
+                      Movimientos recientes
+                    </h3>
+                  </div>
+                  
+                  {/* Ícono de flecha */}
+                  <motion.svg
+                    animate={{ rotate: showMovements ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-gray-600 group-hover:text-black"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </motion.svg>
+                </button>
+                
+                {/* Contenido expandible */}
+                <AnimatePresence>
+                  {showMovements && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-6 space-y-3">
+                        {recentMovements.map((movement, index) => (
+                          <motion.div
+                            key={movement.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="flex items-center justify-between bg-slate-50 hover:bg-blue-50 p-5 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-200 cursor-pointer group"
+                          >
+                            <div className="flex items-center space-x-4 flex-1">
+                              {/* Ícono según tipo */}
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                movement.type === 'income' 
+                                  ? 'bg-green-100 group-hover:bg-green-200' 
+                                  : 'bg-rose-100 group-hover:bg-rose-200'
+                              } transition-colors`}>
+                                {movement.type === 'income' ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                  </svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                                  </svg>
+                                )}
+                              </div>
+                              
+                              <div className="flex-1">
+                                <div className="text-base font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
+                                  {movement.title}
+                                </div>
+                                <div className="text-sm text-slate-500">
+                                  {movement.subtitle}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className={`text-lg font-bold ${
+                              movement.type === 'income' ? 'text-green-600' : 'text-rose-600'
+                            }`}>
+                              {movement.amount}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                      
+                      {/* Footer del panel */}
+                      <div className="px-6 pb-4">
+                        <button className="w-full py-3 text-blue-600 hover:text-blue-700 font-semibold text-sm hover:bg-blue-50 rounded-lg transition-colors">
+                          Ver todos los movimientos →
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Features Info */}
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.9, duration: 0.6 }}
+              className="text-center mt-12"
+            >
+              <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
+                  <span>100% Descentralizada</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-700" />
+                  <span>Sin comisiones ocultas</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-500" />
+                  <span>Soporte multi-activos</span>
                 </div>
               </div>
-            </ProximityGlow>
-          </motion.div>
+            </motion.div>
 
-          {/* Features Info */}
-          <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-            className="text-center"
-          >
-            <div className="mt-8 flex items-center justify-center space-x-8 text-sm text-slate-600">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#98FB98' }} />
-                <span>100% Descentralizada</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#F0E68C' }} />
-                <span>Sin comisiones ocultas</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#DDA0DD' }} />
-                <span>Soporte multi-activos</span>
-              </div>
-            </div>
-          </motion.div>
-
-        </div>
+          </div>
+        </motion.div>
       </div>
-
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-64 pointer-events-none" style={{ background: 'linear-gradient(to top, white, transparent)' }} />
     </div>
   );
 }
