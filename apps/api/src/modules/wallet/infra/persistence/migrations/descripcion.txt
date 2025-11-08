@@ -1,0 +1,1 @@
+Migraciones de base de datos que versionan los esquemas de gestion de wallets y balances.

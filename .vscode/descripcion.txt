@@ -1,0 +1,1 @@
+Configuracion recomendada de VS Code para colaborar en el repositorio.

@@ -1,0 +1,1 @@
+Modulo dedicado a pagos y conciliaciones, separando dominio, aplicacion e infraestructura.

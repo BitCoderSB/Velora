@@ -1,0 +1,1 @@
+DTOs utilizados por la capa HTTP de operaciones interledger y liquidez.

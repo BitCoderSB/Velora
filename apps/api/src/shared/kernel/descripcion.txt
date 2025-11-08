@@ -1,0 +1,1 @@
+Tipos base, manejo de errores y helpers del nucleo de la aplicacion.

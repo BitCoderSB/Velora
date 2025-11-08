@@ -1,0 +1,1 @@
+Abstracciones para mensajeria, colas y publicacion de eventos.

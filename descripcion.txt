@@ -1,0 +1,1 @@
+Raiz del backend modular; contiene aplicaciones, documentacion y herramientas compartidas.

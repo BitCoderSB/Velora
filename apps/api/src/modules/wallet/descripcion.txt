@@ -1,0 +1,1 @@
+Modulo dedicado a gestion de wallets y balances, separando dominio, aplicacion e infraestructura.

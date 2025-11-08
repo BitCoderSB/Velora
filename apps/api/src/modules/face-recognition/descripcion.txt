@@ -1,0 +1,1 @@
+Modulo dedicado a reconocimiento facial y autenticacion biometrica, separando dominio, aplicacion e infraestructura.

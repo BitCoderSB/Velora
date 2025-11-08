@@ -1,0 +1,1 @@
+Agrupa las aplicaciones ejecutables del proyecto.

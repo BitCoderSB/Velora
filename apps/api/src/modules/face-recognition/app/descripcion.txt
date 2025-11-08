@@ -1,0 +1,1 @@
+Capa de aplicacion que orquesta los casos de uso de reconocimiento facial y autenticacion biometrica.

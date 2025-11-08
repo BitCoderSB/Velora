@@ -1,0 +1,1 @@
+Eventos de dominio generados dentro de gestion de wallets y balances.

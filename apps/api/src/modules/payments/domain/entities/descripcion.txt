@@ -1,0 +1,1 @@
+Entidades que representan los conceptos clave de pagos y conciliaciones.

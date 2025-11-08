@@ -1,0 +1,1 @@
+Adaptadores para integrar gestion de wallets y balances con proveedores y servicios externos.

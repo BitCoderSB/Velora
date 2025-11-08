@@ -1,0 +1,1 @@
+Modelo de dominio y reglas de negocio de reconocimiento facial y autenticacion biometrica.

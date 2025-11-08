@@ -1,0 +1,1 @@
+Eventos de dominio generados dentro de reconocimiento facial y autenticacion biometrica.

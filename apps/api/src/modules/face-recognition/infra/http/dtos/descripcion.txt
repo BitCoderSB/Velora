@@ -1,0 +1,1 @@
+DTOs utilizados por la capa HTTP de reconocimiento facial y autenticacion biometrica.

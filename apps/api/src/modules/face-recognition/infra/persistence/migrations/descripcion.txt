@@ -1,0 +1,1 @@
+Migraciones de base de datos que versionan los esquemas de reconocimiento facial y autenticacion biometrica.

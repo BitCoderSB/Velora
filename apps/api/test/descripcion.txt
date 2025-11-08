@@ -1,0 +1,1 @@
+Pruebas automatizadas y fixtures asociados a la API.

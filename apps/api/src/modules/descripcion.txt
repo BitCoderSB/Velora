@@ -1,0 +1,1 @@
+Coleccion de modulos verticales que encapsulan cada contexto de negocio.

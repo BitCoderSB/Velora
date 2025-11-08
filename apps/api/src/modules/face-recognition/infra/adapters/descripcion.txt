@@ -1,0 +1,1 @@
+Adaptadores para integrar reconocimiento facial y autenticacion biometrica con proveedores y servicios externos.
