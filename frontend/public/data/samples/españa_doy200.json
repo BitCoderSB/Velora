@@ -1,0 +1,10 @@
+{
+  "lat": 39.3261, "lon": -4.8380, "doy": 200, "window": 10, "years": [2001,2024],
+  "vars": ["t2m","prcp","wind10m"],
+   "thresholds": { "very_hot_C": 35, "very_wet_mm": 10, "very_windy_ms": 12 },
+  "stats": {
+    "t2m":   { "p_over_threshold": 0.19, "p10": 10.4, "p50": 17.8, "p90": 25.3, "n_samples": 480, "units": "°C", "source": "precomputed" },
+    "prcp":  { "p_over_threshold": 0.06, "p10": 0.0, "p50": 0.3, "p90": 8.4, "n_samples": 480, "units": "mm", "source": "precomputed" },
+    "wind10m": { "p_over_threshold": 0.15, "p10": 1.5, "p50": 4.1, "p90": 9.9, "n_samples": 480, "units": "m/s", "source": "precomputed" }
+  }
+}
