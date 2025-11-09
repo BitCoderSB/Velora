@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
+import Cookies from "js-cookie";
 
 export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistroFacial }) {
   const [email, setEmail] = useState("");
@@ -101,7 +102,10 @@ export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistr
                       intensity={0.5}
                     >
                       <button
-                        onClick={onStartClient}
+                        onClick={() => {
+                          Cookies.set('userEmail', email, { expires: 7 }); // Store email for 7 days
+                          onStartClient();
+                        }}
                         className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                         style={{ 
                           background: 'linear-gradient(to right, #4F46E5, #7C3AED, #EC4899)',
