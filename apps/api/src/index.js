@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { paymentsRouter } from './modules/payments/infra/http/routes.js';
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,19 +15,16 @@ import { mountFace } from './modules/face-recognition/infra/http/index.js';
 import { createFaceRecognitionTables } from './modules/face-recognition/infra/persistence/migrations/setup.js';
 
 const app = express();
-
 // Configurar CORS
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173'],
   credentials: true
 }));
-
-// Middleware para parsear JSON (límite aumentado para embeddings)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use('/api/payments', express.json({ limit: '1mb' }), paymentsRouter);
 
 mountFace(app);
 app.get('/health', (_req,res)=>res.json({ ok:true }));
+
 
 const port = process.env.PORT || 3000;
 
