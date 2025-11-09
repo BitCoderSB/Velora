@@ -1,1 +1,0 @@
-Adaptadores para integrar operaciones interledger y liquidez con proveedores y servicios externos.
