@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 
-export default function HomePage({ onBack }) {
+export default function HomePage({ onBack, onCobrar }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -227,6 +227,7 @@ export default function HomePage({ onBack }) {
               className="mb-12 flex justify-center"
             >
               <motion.button
+                onClick={onCobrar}
                 whileHover={{ scale: 1.05, y: -5 }}
                 whileTap={{ scale: 0.95 }}
                 className="flex flex-col items-center cursor-pointer group"

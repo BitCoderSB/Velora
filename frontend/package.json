@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
     "chart.js": "^4.4.4",
     "dayjs": "^1.11.13",
     "framer-motion": "^11.2.10",
@@ -17,6 +18,7 @@
     "leaflet-control-geocoder": "^3.3.1",
     "lottie-react": "^2.4.1",
     "mapbox-gl": "^3.15.0",
+    "onnxruntime-web": "^1.23.2",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
