@@ -8,41 +8,20 @@ export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistr
   
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-white">
-      {/* Top Navigation Panel - Full Height */}
-      <nav className="fixed top-0 left-0 right-0 bottom-0 z-50 bg-white/80 backdrop-blur-md border-r border-slate-200 shadow-lg w-96">
-        <div className="h-full flex flex-col px-6 py-8">
-          <motion.h2 
-            className="text-2xl font-bold text-center mb-2"
+      {/* Centered Login Container */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-6">
+        <div className="w-full max-w-md">
+          {/* Velora Title - Big and Bold at top */}
+          <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="text-6xl font-bold text-center mb-12 text-slate-900"
           >
-            <motion.span 
-              className="bg-clip-text text-transparent inline-block"
-              animate={{
-                backgroundImage: [
-                  'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                  'linear-gradient(to right, #98FB98, #F0E68C, #FF7F50)',
-                  'linear-gradient(to right, #DDA0DD, #98FB98, #F0E68C)',
-                  'linear-gradient(to right, #F0E68C, #FF7F50, #DDA0DD)',
-                  'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                ],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              style={{ 
-                WebkitTextStroke: '1px black',
-                paintOrder: 'stroke fill'
-              }}
-            >
-              Velora
-            </motion.span>
-          </motion.h2>
+            Velora
+          </motion.h1>
 
-          {/* Login Form - Center Content */}
+          {/* Login Form */}
           <div className="flex-1 flex items-center justify-center">
             <motion.div
               initial={{ y: 40, opacity: 0 }}
@@ -148,7 +127,7 @@ export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistr
             </motion.div>
           </div>
         </div>
-      </nav>
+      </div>
 
       {/* Animated background elements */}
       <div className="absolute inset-0 pointer-events-none">
@@ -194,14 +173,6 @@ export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistr
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,127,80,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,127,80,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
-
-      {/* Main content - Right side with animations */}
-      <div className="relative z-10 ml-96 min-h-screen flex items-center justify-center px-6">
-        {/* Content can be added here if needed */}
-      </div>
-
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-64 pointer-events-none" style={{ background: 'linear-gradient(to top, white, transparent)' }} />
     </div>
   );
 }

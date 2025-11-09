@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 
-export default function HomePage({ onBack, onCobrar, onSkipToTransfer, onRegisterFaceID }) {
+export default function HomePage({ onBack, onCobrar, onSkipToTransfer }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -17,6 +17,8 @@ export default function HomePage({ onBack, onCobrar, onSkipToTransfer, onRegiste
   // Estados para monto a cobrar
   const [chargeAmount, setChargeAmount] = useState('');
   const [chargeCurrency, setChargeCurrency] = useState('USD');
+  const [serviceProduct, setServiceProduct] = useState('');
+  const [serviceDescription, setServiceDescription] = useState('');
   
   // Ejemplo de notificaciones
   const notifications = [
@@ -223,132 +225,129 @@ export default function HomePage({ onBack, onCobrar, onSkipToTransfer, onRegiste
         >
           <div className="p-8 md:p-12 flex flex-col min-h-full">
 
-            {/* Botón Cobrar - Grande y Centrado */}
+            {/* Sección de Cobro */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
               className="mb-12 flex flex-col items-center"
             >
-              <motion.button
-                onClick={onCobrar}
-                whileHover={{ scale: 1.05, y: -5 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center cursor-pointer group"
+              {/* Título "To charge" - Rectángulo con degradado verde estático */}
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mb-6 px-12 py-4 rounded-2xl"
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)',
+                }}
               >
-                <div 
-                  className="w-48 h-48 md:w-56 md:h-56 rounded-full flex items-center justify-center shadow-2xl border-4 transition-all duration-300 group-hover:shadow-3xl"
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)',
-                    borderColor: '#10b981'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #34d399 0%, #6ee7b7 50%, #a7f3d0 100%)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)';
-                  }}
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-24 w-24 md:h-28 md:w-28 text-white" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-                    />
-                  </svg>
-                </div>
-                <p className="mt-6 text-3xl md:text-4xl font-bold text-gray-900">Cobrar</p>
-              </motion.button>
+                <h1 className="text-4xl md:text-5xl font-black text-white text-center tracking-wide">
+                  To Charge
+                </h1>
+              </motion.div>
 
-              {/* Botón temporal DEV - Skip to Transfer */}
-              {onSkipToTransfer && (
-                <motion.button
-                  onClick={onSkipToTransfer}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="mt-4 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg shadow-md transition-colors"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  🚀 DEV: Ir directo a Transfer
-                </motion.button>
-              )}
-
-              {/* Formulario de Monto a Cobrar */}
+              {/* Formulario de Cobro */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="mt-8 w-full max-w-md"
+                className="w-full max-w-md space-y-4"
               >
-                <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">
-                  💰 Ingresa el monto a cobrar
-                </label>
-                <div className="flex gap-3">
-                  {/* Input para el monto */}
-                  <div className="flex-1 relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={chargeAmount}
-                      onChange={(e) => setChargeAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white text-lg font-semibold"
-                    />
-                  </div>
-
-                  {/* Selector de divisa */}
-                  <select
-                    value={chargeCurrency}
-                    onChange={(e) => setChargeCurrency(e.target.value)}
-                    className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white font-semibold cursor-pointer"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="MXN">MXN</option>
-                    <option value="BTC">BTC</option>
-                    <option value="ETH">ETH</option>
-                  </select>
+                {/* Campo: Servicio o Producto */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 text-center">
+                    Servicio o Producto
+                  </label>
+                  <input
+                    type="text"
+                    value={serviceProduct}
+                    onChange={(e) => setServiceProduct(e.target.value)}
+                    placeholder="Ej: Consultoría, Producto X, etc."
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white"
+                  />
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Este monto será utilizado para la transacción
+
+                {/* Campo: Monto a Cobrar */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 text-center">
+                    Ingresa el monto a cobrar
+                  </label>
+                  <div className="flex gap-3">
+                    {/* Input para el monto */}
+                    <div className="flex-1 relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={chargeAmount}
+                        onChange={(e) => setChargeAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white text-lg font-semibold"
+                      />
+                    </div>
+
+                    {/* Selector de divisa */}
+                    <select
+                      value={chargeCurrency}
+                      onChange={(e) => setChargeCurrency(e.target.value)}
+                      className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white font-semibold cursor-pointer"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="MXN">MXN</option>
+                      <option value="BTC">BTC</option>
+                      <option value="ETH">ETH</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Campo: Descripción del Servicio/Producto */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 text-center">
+                    Descripción del servicio/producto
+                  </label>
+                  <textarea
+                    value={serviceDescription}
+                    onChange={(e) => setServiceDescription(e.target.value)}
+                    placeholder="Describe los detalles del servicio o producto..."
+                    rows={3}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white resize-none"
+                  />
+                </div>
+
+                {/* Botón Get Cash - Rectangular con Degradado Dinámico */}
+                <motion.button
+                  onClick={onCobrar}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  animate={{
+                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                  }}
+                  transition={{
+                    backgroundPosition: {
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }
+                  }}
+                  className="w-full py-5 rounded-2xl shadow-2xl border-2 border-white/50 font-black text-2xl text-white transition-all duration-300 hover:shadow-3xl"
+                  style={{
+                    background: 'linear-gradient(90deg, #10b981, #34d399, #6ee7b7, #34d399, #10b981)',
+                    backgroundSize: '200% 100%',
+                  }}
+                >
+                  GET CASH
+                </motion.button>
+
+                <p className="text-xs text-gray-500 text-center mt-3">
+                  Completa la información para generar el cobro
                 </p>
               </motion.div>
-
-              {/* Botón Registrarse con Face ID */}
-              <motion.button
-                onClick={onRegisterFaceID}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="mt-6 px-8 py-4 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg mx-auto"
-                style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #60a5fa 0%, #93c5fd 50%, #bfdbfe 100%)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%)';
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Registrarse con Face ID
-              </motion.button>
             </motion.div>
 
             {/* Explora tu Reporte Financiero Section */}

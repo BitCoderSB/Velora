@@ -7,7 +7,6 @@ import RegistroFacialPage from '@components/pages/RegistroFacialPage.jsx';
 import HomePage from '@components/pages/HomePage.jsx';
 import ClientDashboardPage from '@components/pages/ClientDashboardPage.jsx';
 import CobrarPage from '@components/pages/CobrarPage.jsx';
-import TransferPage from '@components/pages/TransferPage.jsx';
 import ConfirmTransferPage from '@components/pages/ConfirmTransferPage.jsx';
 import FinalConfirmationPage from '@components/pages/FinalConfirmationPage.jsx';
 import TransferReceiptPage from '@components/pages/TransferReceiptPage.jsx';
@@ -63,10 +62,6 @@ export default function App() {
     setCurrentPage('home');
   };
 
-  const navigateToTransfer = () => {
-    setCurrentPage('transfer');
-  };
-
   const navigateBackToCobrar = () => {
     setCurrentPage('cobrar');
   };
@@ -75,8 +70,8 @@ export default function App() {
     setCurrentPage('confirm');
   };
 
-  const navigateBackToTransfer = () => {
-    setCurrentPage('transfer');
+  const navigateBackToCobrar2 = () => {
+    setCurrentPage('cobrar');
   };
 
   const navigateToFinalConfirm = () => {
@@ -231,7 +226,6 @@ export default function App() {
         <HomePage 
           onBack={navigateBackToWelcome} 
           onCobrar={navigateToCobrar}
-          onSkipToTransfer={navigateToTransfer}
         />
       )}
 
@@ -240,25 +234,24 @@ export default function App() {
           onBack={navigateBackToHome}
           onVerified={(result) => {
             console.log('Verificación completada:', result);
-            // Si la verificación fue exitosa, navegar a TransferPage
+            // Si la verificación fue exitosa, navegar directamente a confirm
             if (result.match) {
-              navigateToTransfer();
+              // Aquí podríamos pasar los datos del cobro directamente
+              setPendingTransfer({
+                walletUrl: result.walletUrl || '',
+                amount: result.amount || 0,
+                description: result.description || ''
+              });
+              navigateToConfirm();
             }
           }}
-        />
-      )}
-
-      {currentPage === 'transfer' && (
-        <TransferPage 
-          onBack={navigateBackToCobrar}
-          onSubmit={handleTransferSubmit}
         />
       )}
 
       {currentPage === 'confirm' && pendingTransfer && (
         <ConfirmTransferPage 
           transferData={pendingTransfer}
-          onBack={navigateBackToTransfer}
+          onBack={navigateBackToCobrar2}
           onConfirm={handleConfirmTransfer}
         />
       )}
