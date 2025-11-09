@@ -6,6 +6,7 @@ export default function Registro2Page({ onBack, onComplete, userData }) {
   const [formData, setFormData] = useState({
     walletUrl: '',
     keyId: '',
+    privateKey: '',
     pin: '',
     confirmPin: ''
   });
@@ -41,6 +42,11 @@ export default function Registro2Page({ onBack, onComplete, userData }) {
     // Validar Key ID
     if (!formData.keyId.trim()) {
       newErrors.keyId = 'El Key ID es requerido';
+    }
+
+    // Validar Private Key
+    if (!formData.privateKey.trim()) {
+      newErrors.privateKey = 'La Private Key es requerida';
     }
 
     // Validar PIN
@@ -267,6 +273,24 @@ export default function Registro2Page({ onBack, onComplete, userData }) {
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     />
                     {errors.keyId && <p className="text-red-500 text-xs mt-1">{errors.keyId}</p>}
+                  </div>
+
+                  {/* Private Key */}
+                  <div className="md:col-span-2">
+                    <label htmlFor="privateKey" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Private Key *
+                    </label>
+                    <textarea
+                      id="privateKey"
+                      name="privateKey"
+                      value={formData.privateKey}
+                      onChange={handleInputChange}
+                      rows="4"
+                      className={`w-full px-4 py-3 border-2 ${errors.privateKey ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm`}
+                      placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                    />
+                    {errors.privateKey && <p className="text-red-500 text-xs mt-1">{errors.privateKey}</p>}
+                    <p className="text-xs text-gray-500 mt-1">Pega tu clave privada de Interledger aquí</p>
                   </div>
 
                   {/* PIN */}
