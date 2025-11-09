@@ -1,12 +1,23 @@
-# Modelo ArcFace
+# Modelo ArcFace para Reconocimiento Facial
 
-Este directorio debe contener el modelo ArcFace ONNX para el reconocimiento facial.
+Este directorio debe contener el modelo ArcFace ONNX (249 MB) para el reconocimiento facial.
 
-Archivo esperado: `arcface.onnx`
+## Descargar el Modelo
 
-Para obtener el modelo:
-1. Descargar desde: https://github.com/onnx/models/tree/main/vision/body_analysis/arcface
-2. O usar un modelo personalizado entrenado
-3. Colocar el archivo .onnx en esta carpeta
+**Archivo esperado**: `arcface.onnx`
+
+### Opción 1: Descarga directa
+```bash
+curl -L -o arcface.onnx "https://github.com/onnx/models/raw/main/validated/vision/body_analysis/arcface/model/arcface-resnet100-8.onnx"
+```
+
+### Opción 2: Descarga manual
+1. Ir a: https://github.com/onnx/models/tree/main/validated/vision/body_analysis/arcface
+2. Descargar `arcface-resnet100-8.onnx` 
+3. Renombrar a `arcface.onnx`
+4. Colocar en este directorio
+
+## Nota
+Este archivo está excluido del control de versiones debido a su gran tamaño (249 MB).
 
 El componente FaceCaptureONNX busca el modelo en: `/models/arcface.onnx`

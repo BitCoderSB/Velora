@@ -145,3 +145,6 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/dotenv,node
+
+# Modelos de ML grandes - deben descargarse por separado
+frontend/public/models/arcface.onnx

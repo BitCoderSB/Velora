@@ -1,6 +1,20 @@
 # Frontend - Skylikely
 
-## Mapbox 3D Globe
+## Configuración Inicial
+
+### 1. Modelo de Reconocimiento Facial
+
+**IMPORTANTE**: Debes descargar el modelo ArcFace antes de usar el reconocimiento facial.
+
+```bash
+# Crear directorio si no existe
+mkdir -p frontend/public/models/
+
+# Descargar el modelo ArcFace (249 MB)
+curl -L -o frontend/public/models/arcface.onnx "https://github.com/onnx/models/raw/main/validated/vision/body_analysis/arcface/model/arcface-resnet100-8.onnx"
+```
+
+### 2. Mapbox 3D Globe
 
 Para habilitar el globo 3D con Mapbox, crea un archivo `.env.local` en `frontend/` con:
 
