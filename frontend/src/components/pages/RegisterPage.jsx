@@ -7,6 +7,7 @@ export default function RegisterPage({ onBack, onRegister }) {
     // Datos personales
     firstName: '',
     lastName: '',
+    address: '',
     city: '',
     country: '',
     // Credenciales
@@ -38,6 +39,7 @@ export default function RegisterPage({ onBack, onRegister }) {
     // Validar datos personales
     if (!formData.firstName.trim()) newErrors.firstName = 'El nombre es requerido';
     if (!formData.lastName.trim()) newErrors.lastName = 'El apellido es requerido';
+    if (!formData.address.trim()) newErrors.address = 'La dirección es requerida';
     if (!formData.city.trim()) newErrors.city = 'La ciudad es requerida';
     if (!formData.country.trim()) newErrors.country = 'El país es requerido';
 
@@ -187,6 +189,23 @@ export default function RegisterPage({ onBack, onRegister }) {
                       placeholder="Pérez"
                     />
                     {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
+                  </div>
+
+                  {/* Dirección */}
+                  <div className="md:col-span-2">
+                    <label htmlFor="address" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Dirección *
+                    </label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-3 border-2 ${errors.address ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+                      placeholder="Calle Principal #123, Col. Centro"
+                    />
+                    {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                   </div>
 
                   {/* Ciudad */}

@@ -33,7 +33,10 @@ export default function FaceCaptureONNX({
     verify: '/api/face/verify'
   },
   onEnrolled = null,
-  onVerified = null
+  onVerified = null,
+  enableLivenessCheck = true,
+  // Props para enrolamiento (ahora recibe todos los datos del usuario)
+  userData = null
 }) {
   // Estados
   const [status, setStatus] = useState('loadingModels'); // loadingModels, cameraOn, noFace, ready, inferencing, error
@@ -51,10 +54,6 @@ export default function FaceCaptureONNX({
   const faceLandmarkerRef = useRef(null);
   const lastLandmarksRef = useRef(null);
   const animationFrameRef = useRef(null);
-
-  // Nombre y NIP para enrolamiento
-  const [nombre, setNombre] = useState('');
-  const [nipHash, setNipHash] = useState('');
 
   // ==================== HELPERS ====================
 
@@ -603,39 +602,43 @@ export default function FaceCaptureONNX({
   // ==================== ENROLAMIENTO ====================
 
   const handleEnroll = async () => {
-    if (!nombre.trim()) {
-      alert('Ingresa un nombre');
+    // Validar que tenemos userData
+    if (!userData) {
+      alert('No hay datos del usuario para registrar');
       return;
     }
 
-    if (!nipHash.trim()) {
-      alert('Ingresa un NIP hash');
-      return;
-    }
+    console.log('🎯 Iniciando registro facial con datos:', userData);
 
     try {
       setStatus('inferencing');
       setEnrollmentProgress(0);
       setResult(null);
 
-      // Pedir liveness check
-      setLivenessCheck('blink');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Pedir liveness check solo si está habilitado
+      if (enableLivenessCheck) {
+        setLivenessCheck('blink');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
       
       const embeddings = [];
 
       // Capturar 3 embeddings con delay
       for (let i = 0; i < 3; i++) {
-        setLivenessCheck(i % 2 === 0 ? 'blink' : 'turn');
-        await new Promise(resolve => setTimeout(resolve, 300));
+        if (enableLivenessCheck) {
+          setLivenessCheck(i % 2 === 0 ? 'blink' : 'turn');
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Verificar movimiento (liveness básico)
-        const video = videoRef.current;
-        const results = faceLandmarkerRef.current.detectForVideo(video, performance.now());
-        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-          const moved = checkLivenessMovement(results.faceLandmarks[0]);
-          if (!moved && i > 0) {
-            throw new Error('Liveness check falló: no se detectó movimiento');
+        // Verificar movimiento (liveness básico) - Solo advertencia, no bloqueante
+        if (enableLivenessCheck) {
+          const video = videoRef.current;
+          const results = faceLandmarkerRef.current.detectForVideo(video, performance.now());
+          if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+            const moved = checkLivenessMovement(results.faceLandmarks[0]);
+            if (!moved && i > 0) {
+              console.warn('⚠️ Liveness check: No se detectó mucho movimiento, pero continuando...');
+            }
           }
         }
 
@@ -646,23 +649,52 @@ export default function FaceCaptureONNX({
 
       setLivenessCheck(null);
 
-      // Enviar al backend
+      console.log('📤 Enviando datos al backend:', { ...userData, embeddings: embeddings.length + ' embeddings' });
+
+      // Enviar al backend con todos los datos del usuario
       const response = await fetch(endpoints.enroll, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nombre: nombre.trim(),
-          nip_hash: nipHash.trim(),
+          ...userData,
           embeddings: embeddings
         })
       });
 
-      const data = await response.json();
+      console.log('📥 Respuesta del servidor:', response.status, response.statusText);
+
+      // Verificar si la respuesta es exitosa
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error HTTP:', response.status, errorText);
+        throw new Error(`Error del servidor (${response.status}): ${errorText}`);
+      }
+
+      // Intentar parsear JSON
+      const responseText = await response.text();
+      console.log('📝 Texto de respuesta:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📊 Datos recibidos:', data);
+      } catch (parseError) {
+        console.error('❌ Error al parsear JSON:', parseError);
+        console.error('Respuesta recibida:', responseText);
+        throw new Error('Respuesta inválida del servidor: ' + responseText.substring(0, 100));
+      }
 
       if (data.ok) {
+        console.log('✅ Registro exitoso! User ID:', data.user_id);
         setResult({ type: 'enroll', success: true, user_id: data.user_id });
-        if (onEnrolled) onEnrolled(data.user_id);
+        if (onEnrolled) {
+          console.log('🔔 Llamando callback onEnrolled con ID:', data.user_id);
+          onEnrolled(data.user_id);
+        } else {
+          console.warn('⚠️ No hay callback onEnrolled definido');
+        }
       } else {
+        console.error('❌ Error en respuesta del servidor:', data.error);
         throw new Error(data.error || 'Error en enrolamiento');
       }
 
@@ -829,91 +861,73 @@ export default function FaceCaptureONNX({
         </button>
       )}
 
-      {/* Enrollment Form */}
-      {status !== 'loadingModels' && (
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Juan Pérez"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={status === 'inferencing'}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              NIP Hash (Argon2id)
-            </label>
-            <input
-              type="password"
-              value={nipHash}
-              onChange={(e) => setNipHash(e.target.value)}
-              placeholder="$argon2id$..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={status === 'inferencing'}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Hash debe ser generado previamente con Argon2id
-            </p>
-          </div>
+      {/* Información del cliente desde userData */}
+      {userData && (
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="font-semibold text-blue-800 mb-2">Cliente a registrar:</h3>
+          <p className="text-blue-700">
+            <span className="font-medium">Nombre:</span> {userData.firstName} {userData.lastName}
+          </p>
+          <p className="text-blue-700">
+            <span className="font-medium">Email:</span> {userData.email}
+          </p>
+          <p className="text-blue-700">
+            <span className="font-medium">Ciudad:</span> {userData.city}, {userData.country}
+          </p>
         </div>
       )}
 
       {/* Action Buttons */}
       <div className="space-y-4">
-        {/* Botón Principal: Cobrar (Verificar) */}
-        <button
-          onClick={handleVerify}
-          disabled={status !== 'ready' || !streamRef.current}
-          className="w-full text-white font-bold text-2xl py-6 rounded-2xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-2xl transform hover:scale-105"
-          style={{
-            background: status === 'ready' && streamRef.current
-              ? 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)'
-              : '#9CA3AF',
-          }}
-          onMouseEnter={(e) => {
-            if (status === 'ready' && streamRef.current) {
-              e.target.style.background = 'linear-gradient(135deg, #34D399 0%, #6EE7B7 50%, #A7F3D0 100%)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (status === 'ready' && streamRef.current) {
-              e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)';
-            }
-          }}
-        >
-          💰 Cobrar
-        </button>
-
-        {/* Botón Secundario: Ver Reporte Completo (Enrolar) */}
-        <button
-          onClick={handleEnroll}
-          disabled={status !== 'ready' || !streamRef.current}
-          className="w-full text-white font-semibold text-lg py-4 rounded-xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-md hover:shadow-xl transform hover:scale-102"
-          style={{
-            background: status === 'ready' && streamRef.current
-              ? 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)'
-              : '#9CA3AF',
-          }}
-          onMouseEnter={(e) => {
-            if (status === 'ready' && streamRef.current) {
-              e.target.style.background = 'linear-gradient(135deg, #34D399 0%, #6EE7B7 50%, #A7F3D0 100%)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (status === 'ready' && streamRef.current) {
-              e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)';
-            }
-          }}
-        >
-          � Ver Reporte Completo
-        </button>
+        {userData ? (
+          /* Modo Registro - Botón principal para registrar */
+          <button
+            onClick={handleEnroll}
+            disabled={status !== 'ready' || !streamRef.current}
+            className="w-full text-white font-bold text-2xl py-6 rounded-2xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-2xl transform hover:scale-105"
+            style={{
+              background: status === 'ready' && streamRef.current
+                ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 50%, #1E40AF 100%)'
+                : '#9CA3AF',
+            }}
+            onMouseEnter={(e) => {
+              if (status === 'ready' && streamRef.current) {
+                e.target.style.background = 'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #1E3A8A 100%)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (status === 'ready' && streamRef.current) {
+                e.target.style.background = 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 50%, #1E40AF 100%)';
+              }
+            }}
+          >
+            📸 Registrar Cliente
+          </button>
+        ) : (
+          /* Modo Verificación - Botón principal para cobrar */
+          <button
+            onClick={handleVerify}
+            disabled={status !== 'ready' || !streamRef.current}
+            className="w-full text-white font-bold text-2xl py-6 rounded-2xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-2xl transform hover:scale-105"
+            style={{
+              background: status === 'ready' && streamRef.current
+                ? 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)'
+                : '#9CA3AF',
+            }}
+            onMouseEnter={(e) => {
+              if (status === 'ready' && streamRef.current) {
+                e.target.style.background = 'linear-gradient(135deg, #34D399 0%, #6EE7B7 50%, #A7F3D0 100%)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (status === 'ready' && streamRef.current) {
+                e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)';
+              }
+            }}
+          >
+            💰 Cobrar
+          </button>
+        )}
       </div>
 
       {/* Result Display */}
@@ -938,10 +952,23 @@ export default function FaceCaptureONNX({
 
           {result.type === 'verify' && (
             <div className="text-sm space-y-1">
-              <p>Match: <span className="font-bold">{result.match ? 'SÍ' : 'NO'}</span></p>
-              <p>Score: <span className="font-mono">{result.score?.toFixed(4)}</span></p>
-              {result.user_id && <p>User ID: <span className="font-mono">{result.user_id}</span></p>}
-              <p>Decisión: <span className="font-semibold">{result.decision}</span></p>
+              {result.match ? (
+                <>
+                  <p className="text-green-600 font-bold text-base">✅ Cliente reconocido</p>
+                  {result.cliente && (
+                    <>
+                      <p>Nombre: <span className="font-semibold">{result.cliente.nombre}</span></p>
+                      <p>Email: <span className="font-mono text-xs">{result.cliente.email}</span></p>
+                    </>
+                  )}
+                  <p>Confianza: <span className="font-mono">{(result.score * 100).toFixed(1)}%</span></p>
+                </>
+              ) : (
+                <>
+                  <p className="text-red-600 font-bold text-base">❌ Cliente no registrado</p>
+                  <p className="text-gray-500 text-xs">Score: {(result.score * 100).toFixed(1)}%</p>
+                </>
+              )}
             </div>
           )}
         </div>

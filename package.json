@@ -19,6 +19,7 @@
     "@vladmandic/face-api": "^1.7.15",
     "argon2": "^0.44.0",
     "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -27,6 +28,7 @@
     "mongoose": "^8.19.3",
     "morgan": "^1.10.1",
     "mysql2": "^3.15.3",
+    "pg": "^8.16.3",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
     "zod": "^4.1.12"

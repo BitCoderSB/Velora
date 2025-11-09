@@ -185,7 +185,9 @@ export default function App() {
         <RegisterPage 
           onBack={navigateBackToWelcome}
           onRegister={(userData) => {
+            console.log('RegisterPage - Datos recibidos:', userData);
             setRegistrationData(userData);
+            console.log('Navegando a Registro2Page');
             navigateToRegistro2();
           }}
         />
@@ -197,7 +199,12 @@ export default function App() {
           onBack={navigateBackToRegister}
           onComplete={(completeData) => {
             console.log('Datos de Interledger completados:', completeData);
-            setRegistrationData(completeData);
+            console.log('Navegando a RegistroFacial con datos:', completeData);
+            setRegistrationData(prevData => {
+              const newData = { ...prevData, ...completeData };
+              console.log('registrationData actualizado a:', newData);
+              return newData;
+            });
             navigateToRegistroFacial();
           }}
         />
@@ -208,9 +215,12 @@ export default function App() {
           userData={registrationData}
           onBack={navigateBackToRegistro2}
           onComplete={(completeDataWithFace) => {
-            console.log('Registro completo con foto facial:', completeDataWithFace);
-            // Aquí se enviaría al backend todo el registro completo
-            navigateToHome();
+            console.log('✅ Registro completo con foto facial:', completeDataWithFace);
+            console.log('Navegando a ClientDashboard');
+            // Limpiar datos de registro
+            setRegistrationData(null);
+            // Navegar al dashboard del cliente
+            navigateToClientDashboard();
           }}
         />
       )}
