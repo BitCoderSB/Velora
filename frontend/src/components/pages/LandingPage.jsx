@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import veloraLogo from "../../img/Copilot_20251108_232520.png";
 
 export default function LandingPage({ onContinue }) {
   const phrases = [
@@ -88,32 +89,19 @@ export default function LandingPage({ onContinue }) {
             className="mb-16"
           >
             
-            {/* Main heading with gradient text */}
-            <h1 className="text-8xl md:text-9xl font-bold mb-6 text-center">
-              <motion.span 
-                className="bg-clip-text text-transparent inline-block"
-                animate={{
-                  backgroundImage: [
-                    'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                    'linear-gradient(to right, #98FB98, #F0E68C, #FF7F50)',
-                    'linear-gradient(to right, #DDA0DD, #98FB98, #F0E68C)',
-                    'linear-gradient(to right, #F0E68C, #FF7F50, #DDA0DD)',
-                    'linear-gradient(to right, #FF7F50, #DDA0DD, #98FB98)',
-                  ],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-                style={{ 
-                  WebkitTextStroke: '2px black',
-                  paintOrder: 'stroke fill'
-                }}
-              >
-                Velora
-              </motion.span>
-            </h1>
+            {/* Main logo image */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              className="mb-6 flex justify-center"
+            >
+              <img 
+                src={veloraLogo} 
+                alt="Velora" 
+                className="w-64 md:w-96 h-auto object-contain"
+              />
+            </motion.div>
             
             <div className="text-xl md:text-2xl text-slate-700 font-light max-w-3xl mx-auto leading-relaxed h-32 flex items-center justify-center px-4">
               <AnimatePresence mode="wait">

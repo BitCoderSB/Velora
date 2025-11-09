@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 
-export default function HomePage({ onBack, onCobrar, onSkipToTransfer }) {
+export default function HomePage({ onBack, onCobrar, onSkipToTransfer, onRegisterFaceID }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -13,6 +13,10 @@ export default function HomePage({ onBack, onCobrar, onSkipToTransfer }) {
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMovements, setShowMovements] = useState(false);
+  
+  // Estados para monto a cobrar
+  const [chargeAmount, setChargeAmount] = useState('');
+  const [chargeCurrency, setChargeCurrency] = useState('USD');
   
   // Ejemplo de notificaciones
   const notifications = [
@@ -277,6 +281,74 @@ export default function HomePage({ onBack, onCobrar, onSkipToTransfer }) {
                   🚀 DEV: Ir directo a Transfer
                 </motion.button>
               )}
+
+              {/* Formulario de Monto a Cobrar */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mt-8 w-full max-w-md"
+              >
+                <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">
+                  💰 Ingresa el monto a cobrar
+                </label>
+                <div className="flex gap-3">
+                  {/* Input para el monto */}
+                  <div className="flex-1 relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={chargeAmount}
+                      onChange={(e) => setChargeAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white text-lg font-semibold"
+                    />
+                  </div>
+
+                  {/* Selector de divisa */}
+                  <select
+                    value={chargeCurrency}
+                    onChange={(e) => setChargeCurrency(e.target.value)}
+                    className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white font-semibold cursor-pointer"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="MXN">MXN</option>
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                  </select>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Este monto será utilizado para la transacción
+                </p>
+              </motion.div>
+
+              {/* Botón Registrarse con Face ID */}
+              <motion.button
+                onClick={onRegisterFaceID}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="mt-6 px-8 py-4 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg mx-auto"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #60a5fa 0%, #93c5fd 50%, #bfdbfe 100%)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%)';
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Registrarse con Face ID
+              </motion.button>
             </motion.div>
 
             {/* Explora tu Reporte Financiero Section */}
@@ -296,7 +368,7 @@ export default function HomePage({ onBack, onCobrar, onSkipToTransfer }) {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="mt-4 w-full text-white font-semibold py-4 text-lg rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="mt-4 w-full text-white font-semibold py-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg text-lg"
                   style={{
                     background: 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)'
                   }}

@@ -14,6 +14,10 @@ export default function CobrarPage({ onBack, onVerified }) {
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   
+  // Estados para monto y divisa
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  
   // Ejemplo de notificaciones
   const notifications = [
     { id: 1, message: "Nueva transacción recibida: 50 USD", time: "Hace 5 min", unread: true },
@@ -221,13 +225,92 @@ export default function CobrarPage({ onBack, onVerified }) {
                 // Aquí puedes agregar lógica adicional después del enrolamiento
               }}
               onVerified={(result) => {
-                console.log('Verificación completada:', result);
+                console.log('Verificación completada:', result, { amount, currency });
                 // Si la verificación fue exitosa, navegar a la página de transferencia
                 if (onVerified) {
-                  onVerified(result);
+                  onVerified({ ...result, amount, currency });
                 }
               }}
             />
+
+            {/* Sección de Monto a Cobrar */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="mt-8 max-w-2xl mx-auto w-full"
+            >
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border-2 border-white/50 p-6 md:p-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Monto a Cobrar
+                </h3>
+
+                <div className="flex gap-4">
+                  {/* Input de Monto */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      💰 Cantidad
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full px-4 py-4 text-2xl font-bold border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500 focus:border-green-500 transition text-gray-900 bg-white"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Ingresa el monto a cobrar al cliente
+                    </p>
+                  </div>
+
+                  {/* Selector de Divisa */}
+                  <div className="w-32">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      💱 Divisa
+                    </label>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="w-full px-3 py-4 text-lg font-bold border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500 focus:border-green-500 transition text-gray-900 bg-white cursor-pointer"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="JPY">JPY</option>
+                      <option value="MXN">MXN</option>
+                      <option value="CAD">CAD</option>
+                      <option value="AUD">AUD</option>
+                      <option value="BTC">BTC</option>
+                      <option value="ETH">ETH</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      Moneda
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resumen del monto */}
+                {amount && parseFloat(amount) > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-4 border-2 border-green-200"
+                  >
+                    <p className="text-sm text-gray-600 mb-1 text-center">Total a cobrar:</p>
+                    <p className="text-3xl font-bold text-green-600 text-center">
+                      {currency} ${parseFloat(amount).toFixed(2)}
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       </div>

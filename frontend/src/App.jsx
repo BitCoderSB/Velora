@@ -1,6 +1,9 @@
 ﻿import { useState } from 'react';
 import LandingPage from '@components/pages/LandingPage.jsx';
 import WelcomePage from '@components/pages/WelcomePage.jsx';
+import RegisterPage from '@components/pages/RegisterPage.jsx';
+import Registro2Page from '@components/pages/Registro2Page.jsx';
+import RegistroFacialPage from '@components/pages/RegistroFacialPage.jsx';
 import HomePage from '@components/pages/HomePage.jsx';
 import ClientDashboardPage from '@components/pages/ClientDashboardPage.jsx';
 import CobrarPage from '@components/pages/CobrarPage.jsx';
@@ -10,10 +13,11 @@ import FinalConfirmationPage from '@components/pages/FinalConfirmationPage.jsx';
 import TransferReceiptPage from '@components/pages/TransferReceiptPage.jsx';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('landing'); // 'landing', 'welcome', 'home', 'clientDashboard', 'cobrar', 'transfer', 'confirm', 'finalConfirm', 'receipt'
+  const [currentPage, setCurrentPage] = useState('landing'); // 'landing', 'welcome', 'register', 'registro2', 'registrofacial', 'home', 'clientDashboard', 'cobrar', 'transfer', 'confirm', 'finalConfirm', 'receipt'
   const [pendingTransfer, setPendingTransfer] = useState(null);
   const [confirmationUrl, setConfirmationUrl] = useState(null);
   const [transferResult, setTransferResult] = useState(null);
+  const [registrationData, setRegistrationData] = useState(null);
 
   const navigateToWelcome = () => {
     setCurrentPage('welcome');
@@ -21,6 +25,26 @@ export default function App() {
 
   const navigateToHome = () => {
     setCurrentPage('home');
+  };
+
+  const navigateToRegister = () => {
+    setCurrentPage('register');
+  };
+
+  const navigateToRegistro2 = () => {
+    setCurrentPage('registro2');
+  };
+
+  const navigateToRegistroFacial = () => {
+    setCurrentPage('registrofacial');
+  };
+
+  const navigateBackToRegister = () => {
+    setCurrentPage('register');
+  };
+
+  const navigateBackToRegistro2 = () => {
+    setCurrentPage('registro2');
   };
 
   const navigateToClientDashboard = () => {
@@ -156,8 +180,43 @@ export default function App() {
 
       {currentPage === 'welcome' && (
         <WelcomePage 
-          onStartVendor={navigateToHome} 
+          onStartVendor={navigateToRegister} 
           onStartClient={navigateToClientDashboard}
+          onDevRegistroFacial={navigateToRegistroFacial}
+        />
+      )}
+
+      {currentPage === 'register' && (
+        <RegisterPage 
+          onBack={navigateBackToWelcome}
+          onRegister={(userData) => {
+            setRegistrationData(userData);
+            navigateToRegistro2();
+          }}
+        />
+      )}
+
+      {currentPage === 'registro2' && registrationData && (
+        <Registro2Page 
+          userData={registrationData}
+          onBack={navigateBackToRegister}
+          onComplete={(completeData) => {
+            console.log('Datos de Interledger completados:', completeData);
+            setRegistrationData(completeData);
+            navigateToRegistroFacial();
+          }}
+        />
+      )}
+
+      {currentPage === 'registrofacial' && registrationData && (
+        <RegistroFacialPage 
+          userData={registrationData}
+          onBack={navigateBackToRegistro2}
+          onComplete={(completeDataWithFace) => {
+            console.log('Registro completo con foto facial:', completeDataWithFace);
+            // Aquí se enviaría al backend todo el registro completo
+            navigateToHome();
+          }}
         />
       )}
 
