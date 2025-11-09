@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
-import LottieBackground from "@components/ui/LottieBackground.jsx";
 
 export default function WelcomePage({ onStart }) {
   const phrases = [

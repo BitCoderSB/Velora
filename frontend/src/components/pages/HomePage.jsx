@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
-import LottieBackground from "@components/ui/LottieBackground.jsx";
 
 export default function HomePage({ onBack }) {
   const phrases = [
@@ -39,7 +38,7 @@ export default function HomePage({ onBack }) {
   }, []);
   
   return (
-    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-white">
+    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto" style={{ background: 'linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #F0E68C 100%)' }}>
       {/* Top Navigation Panel */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -211,147 +210,71 @@ export default function HomePage({ onBack }) {
 
       {/* Main content - Full page card */}
       <div className="relative z-10 min-h-screen pt-24 pb-8 px-6">
-        {/* Background with gradient - Full page */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="absolute inset-0 mt-20"
-          style={{ 
-            background: 'linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #F0E68C 100%)',
-          }}
-        >
-          {/* Decorative elements */}
-          <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl" 
-               style={{ background: 'radial-gradient(circle, #FFB6C1, transparent)' }} />
-          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl" 
-               style={{ background: 'radial-gradient(circle, #F0E68C, transparent)' }} />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full opacity-15 blur-3xl" 
-               style={{ background: 'radial-gradient(circle, #FFE5B4, transparent)' }} />
-        </motion.div>
-
         {/* White card surface - Full page content */}
         <motion.div
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.8 }}
           className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 mx-auto max-w-7xl"
-          style={{ minHeight: 'calc(100vh - 120px)' }}
         >
           <div className="p-8 md:p-12 flex flex-col min-h-full">
-            
-            {/* Header — solo frase rotativa (sin 'Bienvenido') */}
+
+            {/* Botón Cobrar - Grande y Centrado */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
-              className="mb-6 text-center"
+              className="mb-12 flex justify-center"
             >
-              <div className="text-2xl md:text-3xl text-gray-900 font-light max-w-3xl mx-auto leading-relaxed h-24 flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={currentPhraseIndex}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.45 }}
-                    className="px-4"
+              <motion.button
+                whileHover={{ scale: 1.05, y: -5 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center cursor-pointer group"
+              >
+                <div 
+                  className="w-32 h-32 rounded-full flex items-center justify-center shadow-2xl border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-3xl border-black"
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-16 w-16 text-white" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
                   >
-                    {phrases[currentPhraseIndex]}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                    />
+                  </svg>
+                </div>
+                <p className="mt-4 text-2xl font-bold text-gray-900">Cobrar</p>
+              </motion.button>
             </motion.div>
 
-            {/* Action Circles - Inside white card */}
+            {/* Explora tu Reporte Financiero Section */}
             <motion.div
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="mb-8"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55, duration: 0.6 }}
+              className="mt-6 max-w-2xl mx-auto w-full px-4"
             >
-              <div className="flex justify-center items-center gap-12 md:gap-16">
-                
-                  {/* Transferir */}
-                  <motion.div
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex flex-col items-center cursor-pointer group"
-                  >
-                    <div 
-                      className="w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-xl border-black"
-                    >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-16 w-16 text-white" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" 
-                        />
-                      </svg>
-                    </div>
-                    <p className="mt-4 text-xl font-bold text-gray-900">Transferir</p>
-                  </motion.div>
-
-                  {/* Cobrar */}
-                  <motion.div
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex flex-col items-center cursor-pointer group"
-                  >
-                    <div 
-                      className="w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-xl border-black"
-                    >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-16 w-16 text-white" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-                        />
-                      </svg>
-                    </div>
-                    <p className="mt-4 text-xl font-bold text-gray-900">Cobrar</p>
-                  </motion.div>
-
-                  {/* Tu Cuenta */}
-                  <motion.div
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex flex-col items-center cursor-pointer group"
-                  >
-                    <div 
-                      className="w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-xl border-black"
-                    >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-16 w-16 text-white" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
-                        />
-                      </svg>
-                    </div>
-                    <p className="mt-4 text-xl font-bold text-gray-900">Tu Cuenta</p>
-                  </motion.div>              </div>
+              <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 text-center mb-3">
+                  ¡Explora tu reporte financiero!
+                </h2>
+                <p className="text-sm text-gray-600 text-center">
+                  Visualiza tus gastos, ingresos y tendencias financieras
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="mt-4 w-full bg-black hover:bg-gray-800 text-white font-semibold py-3 rounded-lg transition-colors duration-200"
+                >
+                  Ver reporte completo →
+                </motion.button>
+              </div>
             </motion.div>
 
             {/* Movimientos Recientes - Panel Colapsable */}
@@ -359,19 +282,19 @@ export default function HomePage({ onBack }) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="mt-8 max-w-4xl mx-auto w-full"
+              className="mt-6 max-w-2xl mx-auto w-full px-4"
             >
-              <div className="bg-white border-2 border-gray-300 rounded-2xl shadow-lg overflow-hidden">
+              <div className="bg-white border-2 border-gray-300 rounded-xl shadow-lg overflow-hidden">
                 {/* Header del panel - Clickeable */}
                 <button
                   onClick={() => setShowMovements(!showMovements)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors duration-200 group"
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors duration-200 group"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
                       <svg 
                         xmlns="http://www.w3.org/2000/svg" 
-                        className="h-5 w-5 text-white" 
+                        className="h-4 w-4 text-white" 
                         fill="none" 
                         viewBox="0 0 24 24" 
                         stroke="currentColor"
@@ -384,7 +307,7 @@ export default function HomePage({ onBack }) {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-black transition-colors">
+                    <h3 className="text-base font-bold text-gray-900 group-hover:text-black transition-colors">
                       Movimientos recientes
                     </h3>
                   </div>
@@ -394,7 +317,7 @@ export default function HomePage({ onBack }) {
                     animate={{ rotate: showMovements ? 180 : 0 }}
                     transition={{ duration: 0.3 }}
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-gray-600 group-hover:text-black"
+                    className="h-5 w-5 text-gray-600 group-hover:text-black"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -413,44 +336,44 @@ export default function HomePage({ onBack }) {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-6 pb-6 space-y-3">
+                      <div className="px-4 pb-4 space-y-2">
                         {recentMovements.map((movement, index) => (
                           <motion.div
                             key={movement.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="flex items-center justify-between bg-slate-50 hover:bg-blue-50 p-5 rounded-xl border border-slate-200 hover:border-blue-300 transition-all duration-200 cursor-pointer group"
+                            className="flex items-center justify-between bg-slate-50 hover:bg-blue-50 p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-all duration-200 cursor-pointer group"
                           >
-                            <div className="flex items-center space-x-4 flex-1">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
                               {/* Ícono según tipo */}
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                                 movement.type === 'income' 
                                   ? 'bg-green-100 group-hover:bg-green-200' 
                                   : 'bg-rose-100 group-hover:bg-rose-200'
                               } transition-colors`}>
                                 {movement.type === 'income' ? (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
                                   </svg>
                                 ) : (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
                                   </svg>
                                 )}
                               </div>
                               
-                              <div className="flex-1">
-                                <div className="text-base font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors truncate">
                                   {movement.title}
                                 </div>
-                                <div className="text-sm text-slate-500">
+                                <div className="text-xs text-slate-500 truncate">
                                   {movement.subtitle}
                                 </div>
                               </div>
                             </div>
                             
-                            <div className={`text-lg font-bold ${
+                            <div className={`text-sm font-bold flex-shrink-0 ml-2 ${
                               movement.type === 'income' ? 'text-green-600' : 'text-rose-600'
                             }`}>
                               {movement.amount}
@@ -460,37 +383,14 @@ export default function HomePage({ onBack }) {
                       </div>
                       
                       {/* Footer del panel */}
-                      <div className="px-6 pb-4">
-                        <button className="w-full py-3 text-blue-600 hover:text-blue-700 font-semibold text-sm hover:bg-blue-50 rounded-lg transition-colors">
+                      <div className="px-4 pb-3">
+                        <button className="w-full py-2 text-blue-600 hover:text-blue-700 font-semibold text-xs hover:bg-blue-50 rounded-lg transition-colors">
                           Ver todos los movimientos →
                         </button>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-            </motion.div>
-
-            {/* Features Info */}
-            <motion.div
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.9, duration: 0.6 }}
-              className="text-center mt-12"
-            >
-              <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
-                  <span>100% Descentralizada</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-700" />
-                  <span>Sin comisiones ocultas</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-500" />
-                  <span>Soporte multi-activos</span>
-                </div>
               </div>
             </motion.div>
 
