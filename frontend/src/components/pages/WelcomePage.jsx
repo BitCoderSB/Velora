@@ -2,10 +2,12 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 import Cookies from "js-cookie";
+import { loginWithPassword } from '../../services/database.js';
 
 export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistroFacial }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-white">
@@ -41,6 +43,13 @@ export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistr
                     <h3 className="text-3xl font-bold text-slate-900 mb-6 text-center">
                       Identifícate
                     </h3>
+                    
+                    {/* Error Message */}
+                    {error && (
+                      <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+                        {error}
+                      </div>
+                    )}
                     
                     {/* Email Input */}
                     <div className="mb-4">
@@ -82,8 +91,26 @@ export default function WelcomePage({ onStartVendor, onStartClient, onDevRegistr
                     >
                       <button
                         onClick={() => {
-                          Cookies.set('userEmail', email, { expires: 7 }); // Store email for 7 days
-                          onStartClient();
+                          setError("");
+                          
+                          if (!email || !password) {
+                            setError("Por favor ingresa email y contraseña");
+                            return;
+                          }
+                          
+                          try {
+                            // Intentar login con la base de datos local
+                            const user = loginWithPassword(email, password);
+                            
+                            console.log('✅ Login exitoso:', user);
+                            Cookies.set('userEmail', email, { expires: 7 });
+                            
+                            // Navegar al dashboard del cliente
+                            onStartClient();
+                          } catch (error) {
+                            console.error('❌ Error en login:', error);
+                            setError(error.message);
+                          }
                         }}
                         className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                         style={{ 

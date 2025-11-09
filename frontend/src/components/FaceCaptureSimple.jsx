@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import * as faceapi from "face-api.js";
+import { getAllUsers } from '../services/database.js';
 
 /**
  * Componente simple de reconocimiento facial usando face-api.js
@@ -20,8 +21,24 @@ export default function FaceCaptureSimple({
   const [detectedFace, setDetectedFace] = useState(null);
   const [result, setResult] = useState(null);
   
-  // Base de datos local de usuarios registrados (en producción usar backend)
+  // Base de datos local de usuarios registrados - Ahora usa localStorage
   const [usersDatabase, setUsersDatabase] = useState([]);
+  
+  // Cargar usuarios de localStorage al inicio y periódicamente
+  useEffect(() => {
+    const loadUsers = () => {
+      const users = getAllUsers();
+      console.log('📂 Usuarios cargados desde localStorage:', users.length);
+      setUsersDatabase(users);
+    };
+    
+    loadUsers();
+    
+    // Recargar cada 2 segundos para detectar nuevos registros
+    const interval = setInterval(loadUsers, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Referencias
   const videoRef = useRef(null);
@@ -270,7 +287,12 @@ export default function FaceCaptureSimple({
       return;
     }
 
-    if (usersDatabase.length === 0) {
+    // Recargar usuarios desde localStorage antes de reconocer
+    const freshUsers = getAllUsers();
+    console.log('🔄 Recargando usuarios desde localStorage:', freshUsers.length);
+    setUsersDatabase(freshUsers);
+
+    if (freshUsers.length === 0) {
       setErrorMsg("No hay usuarios registrados en la base de datos");
       return;
     }
@@ -285,17 +307,37 @@ export default function FaceCaptureSimple({
       let bestMatch = null;
       let bestDistance = Infinity;
 
-      for (const user of usersDatabase) {
+      for (const user of freshUsers) {
+        // Verificar que el usuario tenga descriptores
+        if (!user.faceDescriptors || user.faceDescriptors.length === 0) {
+          console.warn('⚠️ Usuario sin descriptores:', user.email);
+          continue;
+        }
+        
         // Comparar con todos los descriptores del usuario
-        for (const userDescriptor of user.descriptors) {
-          const distance = faceapi.euclideanDistance(currentDescriptor, userDescriptor);
-          
-          if (distance < bestDistance) {
-            bestDistance = distance;
-            bestMatch = user;
+        for (const userDescriptor of user.faceDescriptors) {
+          try {
+            // Verificar que ambos descriptores tengan la misma longitud
+            if (!userDescriptor || userDescriptor.length !== currentDescriptor.length) {
+              console.warn(`⚠️ Descriptor inválido para ${user.firstName}: longitud ${userDescriptor?.length} vs ${currentDescriptor.length}`);
+              continue;
+            }
+            
+            const distance = faceapi.euclideanDistance(currentDescriptor, userDescriptor);
+            
+            console.log(`📊 Comparando con ${user.firstName}: distancia ${distance.toFixed(3)}`);
+            
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestMatch = user;
+            }
+          } catch (err) {
+            console.error(`❌ Error comparando con ${user.firstName}:`, err.message);
           }
         }
       }
+
+      console.log(`🎯 Mejor coincidencia: ${bestMatch ? bestMatch.firstName : 'ninguna'}, distancia: ${bestDistance.toFixed(3)}, threshold: ${threshold}`);
 
       // Verificar si la distancia está dentro del umbral
       const similarity = 1 - bestDistance; // Convertir distancia a similitud
@@ -311,17 +353,24 @@ export default function FaceCaptureSimple({
       });
 
       if (recognized && onUserRecognized) {
-        onUserRecognized(bestMatch);
+        // Enviar datos adicionales para debugging
+        onUserRecognized({
+          ...bestMatch,
+          id: bestMatch.faceId, // Usar faceId como id principal
+          descriptor: currentDescriptor,
+          matchDistance: bestDistance
+        });
       }
 
       console.log(
         recognized
           ? `✅ Usuario reconocido: ${bestMatch.firstName} ${bestMatch.lastName} (distancia: ${bestDistance.toFixed(3)})`
-          : `❌ Usuario no reconocido (distancia mínima: ${bestDistance.toFixed(3)})`
+          : `❌ Usuario no reconocido (distancia mínima: ${bestDistance.toFixed(3)}, threshold: ${threshold})`
       );
 
       setStatus("detecting");
     } catch (error) {
+      console.error('❌ Error completo:', error);
       setErrorMsg(`Error al reconocer: ${error.message}`);
       setStatus("error");
       setTimeout(() => setStatus("detecting"), 3000);

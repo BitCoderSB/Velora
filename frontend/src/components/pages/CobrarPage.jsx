@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 import FaceCaptureSimple from "@components/FaceCaptureSimple.jsx";
+import { findUserByDescriptors, loginWithFaceId, getCurrentUser } from '../../services/database.js';
 
 export default function CobrarPage({ onBack, onVerified }) {
   const phrases = [
@@ -214,26 +215,56 @@ export default function CobrarPage({ onBack, onVerified }) {
               threshold={0.6}
               userData={null} // null = modo verificación (no registro)
               onUserRegistered={null}
-              onUserRecognized={(user) => {
-                console.log('✅ Cliente reconocido:', user);
+              onUserRecognized={(recognizedData) => {
+                console.log('😀 Rostro reconocido:', recognizedData);
                 
-                // Preparar datos para el backend
-                const verificationResult = {
-                  match: true,
-                  user: user,
-                  // Datos que necesita el backend
-                  email: user.email,
-                  firstName: user.firstName,
-                  lastName: user.lastName,
-                  userId: user.id,
-                  timestamp: new Date().toISOString(),
-                  // Agregar datos adicionales del usuario si existen
-                  ...user
-                };
-                
-                // Llamar al callback onVerified
-                if (onVerified) {
-                  onVerified(verificationResult);
+                try {
+                  // Obtener el usuario actualmente logueado
+                  const currentUser = getCurrentUser();
+                  
+                  if (!currentUser) {
+                    console.error('❌ No hay usuario logueado');
+                    alert('Error: Debes iniciar sesión primero');
+                    return;
+                  }
+                  
+                  console.log('👤 Usuario logueado:', currentUser.email, 'ID:', currentUser.id);
+                  
+                  // recognizedData ya viene con todos los datos del usuario desde FaceCaptureSimple
+                  const recognizedUser = recognizedData;
+                  
+                  // VALIDACIÓN: Excluir si es el mismo usuario logueado
+                  if (recognizedUser.id === currentUser.id) {
+                    console.warn('⚠️ Intento de auto-pago detectado');
+                    alert('❌ No puedes escanearte a ti mismo. Escanea el rostro de la persona que recibirá el pago.');
+                    return;
+                  }
+                  
+                  console.log('✅ Usuario receptor válido:', recognizedUser.email);
+                  
+                  // Preparar datos de verificación
+                  const verificationResult = {
+                    match: true,
+                    user: recognizedUser,
+                    email: recognizedUser.email,
+                    firstName: recognizedUser.firstName,
+                    lastName: recognizedUser.lastName,
+                    userId: recognizedUser.id,
+                    faceId: recognizedUser.faceId,
+                    walletUrl: recognizedUser.walletUrl,
+                    distance: recognizedUser.matchDistance,
+                    timestamp: new Date().toISOString()
+                  };
+                  
+                  console.log('💰 Preparando pago a:', recognizedUser.firstName, recognizedUser.lastName);
+                  
+                  // Llamar al callback onVerified
+                  if (onVerified) {
+                    onVerified(verificationResult);
+                  }
+                } catch (error) {
+                  console.error('❌ Error en reconocimiento facial:', error);
+                  alert('Error: ' + error.message);
                 }
               }}
             />

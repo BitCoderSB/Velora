@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 
-export default function TransferPage({ onBack, onSubmit }) {
+export default function TransferPage({ onBack, onSubmit, receiverUser }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -13,8 +13,8 @@ export default function TransferPage({ onBack, onSubmit }) {
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   
-  // Estados del formulario
-  const [walletUrl, setWalletUrl] = useState('');
+  // Estados del formulario - Pre-cargar con datos del receptor si están disponibles
+  const [walletUrl, setWalletUrl] = useState(receiverUser?.walletUrl || '');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -278,6 +278,43 @@ export default function TransferPage({ onBack, onSubmit }) {
               </motion.div>
             )}
 
+            {/* Receiver Info */}
+            {receiverUser && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+                className="mb-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-6 border-2 border-green-200"
+              >
+                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Cliente Verificado
+                </h3>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase">Nombre</p>
+                    <p className="text-sm text-gray-900 font-medium">
+                      {receiverUser.firstName} {receiverUser.lastName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase">Email</p>
+                    <p className="text-sm text-gray-900 font-mono break-all">
+                      {receiverUser.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase">Wallet</p>
+                    <p className="text-sm text-gray-900 font-mono break-all">
+                      {receiverUser.walletUrl}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Wallet URL */}
@@ -294,12 +331,13 @@ export default function TransferPage({ onBack, onSubmit }) {
                   value={walletUrl}
                   onChange={(e) => setWalletUrl(e.target.value)}
                   placeholder="https://wallet.example.com/user"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white"
-                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white disabled:bg-gray-100"
+                  disabled={isSubmitting || !!receiverUser}
                   required
+                  readOnly={!!receiverUser}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Ingresa la URL del wallet del destinatario (Interledger Protocol)
+                  {receiverUser ? 'Wallet pre-cargado del cliente verificado' : 'Ingresa la URL del wallet del destinatario (Interledger Protocol)'}
                 </p>
               </motion.div>
 

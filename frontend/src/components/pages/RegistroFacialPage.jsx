@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import FaceCaptureSimple from '@components/FaceCaptureSimple.jsx';
+import { registerUser } from '../../services/database.js';
 
 /**
  * Página de registro facial integrada en el flujo de registro de usuarios
@@ -13,25 +14,38 @@ export default function RegistroFacialPage({ userData, onBack, onComplete }) {
     try {
       setRegistrationStatus('success');
       
-      // Combinar datos del usuario con el ID de registro facial
+      console.log('📸 Reconocimiento facial completado:', registeredUser);
+      console.log('👤 Datos de usuario:', userData);
+      
+      // Combinar todos los datos del usuario con el reconocimiento facial
       const completeData = {
-        ...userData,
-        faceId: registeredUser.id,
-        faceRegisteredAt: registeredUser.registeredAt,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: userData.password,
+        address: userData.address,
+        city: userData.city,
+        country: userData.country,
+        walletUrl: userData.walletUrl,
+        keyId: userData.keyId,
+        privateKey: userData.privateKey,
+        pin: userData.pin,
+        faceId: registeredUser.id,  // ID único del reconocimiento facial
+        faceDescriptors: registeredUser.descriptors,  // Array de descriptores
+        faceRegisteredAt: registeredUser.registeredAt
       };
 
-      console.log('✅ Usuario registrado con datos faciales:', completeData);
-
-      // Aquí puedes enviar los datos al backend
-      // await fetch('/api/usuarios/registrar', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(completeData)
-      // });
+      console.log('💾 Guardando usuario en base de datos local...');
+      
+      // Guardar en base de datos local (localStorage)
+      const savedUser = registerUser(completeData);
+      
+      console.log('✅ Usuario registrado exitosamente:', savedUser);
+      console.log('📝 ID:', savedUser.id, '| Email:', savedUser.email, '| FaceID:', savedUser.faceId);
 
       // Esperar un momento para mostrar el éxito antes de continuar
       setTimeout(() => {
-        onComplete(completeData);
+        onComplete(savedUser);
       }, 2000);
 
     } catch (error) {
