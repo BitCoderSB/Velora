@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 
-export default function HomePage({ onBack, onCobrar }) {
+export default function HomePage({ onBack, onCobrar, onSkipToTransfer }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -224,7 +224,7 @@ export default function HomePage({ onBack, onCobrar }) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
-              className="mb-12 flex justify-center"
+              className="mb-12 flex flex-col items-center"
             >
               <motion.button
                 onClick={onCobrar}
@@ -233,11 +233,21 @@ export default function HomePage({ onBack, onCobrar }) {
                 className="flex flex-col items-center cursor-pointer group"
               >
                 <div 
-                  className="w-32 h-32 rounded-full flex items-center justify-center shadow-2xl border-4 bg-black hover:bg-gray-800 transition-all duration-300 group-hover:shadow-3xl border-black"
+                  className="w-48 h-48 md:w-56 md:h-56 rounded-full flex items-center justify-center shadow-2xl border-4 transition-all duration-300 group-hover:shadow-3xl"
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)',
+                    borderColor: '#10b981'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #34d399 0%, #6ee7b7 50%, #a7f3d0 100%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)';
+                  }}
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className="h-16 w-16 text-white" 
+                    className="h-24 w-24 md:h-28 md:w-28 text-white" 
                     fill="none" 
                     viewBox="0 0 24 24" 
                     stroke="currentColor"
@@ -250,8 +260,23 @@ export default function HomePage({ onBack, onCobrar }) {
                     />
                   </svg>
                 </div>
-                <p className="mt-4 text-2xl font-bold text-gray-900">Cobrar</p>
+                <p className="mt-6 text-3xl md:text-4xl font-bold text-gray-900">Cobrar</p>
               </motion.button>
+
+              {/* Botón temporal DEV - Skip to Transfer */}
+              {onSkipToTransfer && (
+                <motion.button
+                  onClick={onSkipToTransfer}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="mt-4 px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg shadow-md transition-colors"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  🚀 DEV: Ir directo a Transfer
+                </motion.button>
+              )}
             </motion.div>
 
             {/* Explora tu Reporte Financiero Section */}
@@ -271,7 +296,16 @@ export default function HomePage({ onBack, onCobrar }) {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="mt-4 w-full bg-black hover:bg-gray-800 text-white font-semibold py-3 rounded-lg transition-colors duration-200"
+                  className="mt-4 w-full text-white font-semibold py-4 text-lg rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl"
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #34d399 0%, #6ee7b7 50%, #a7f3d0 100%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)';
+                  }}
                 >
                   Ver reporte completo →
                 </motion.button>

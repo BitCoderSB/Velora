@@ -1,9 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
-import FaceCaptureONNX from "@components/FaceCaptureONNX.jsx";
 
-export default function CobrarPage({ onBack, onVerified }) {
+export default function TransferPage({ onBack, onSubmit }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -13,6 +12,13 @@ export default function CobrarPage({ onBack, onVerified }) {
   
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Estados del formulario
+  const [walletUrl, setWalletUrl] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   
   // Ejemplo de notificaciones
   const notifications = [
@@ -28,6 +34,44 @@ export default function CobrarPage({ onBack, onVerified }) {
     
     return () => clearInterval(interval);
   }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validaciones
+    if (!walletUrl.trim()) {
+      setError('Por favor ingresa una URL de wallet válida');
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      setError('Por favor ingresa un monto válido mayor a 0');
+      return;
+    }
+
+    if (!description.trim()) {
+      setError('Por favor ingresa una descripción');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Aquí se llamará a la función onSubmit pasada como prop
+      if (onSubmit) {
+        await onSubmit({
+          walletUrl: walletUrl.trim(),
+          amount: parseFloat(amount),
+          description: description.trim()
+        });
+      }
+    } catch (err) {
+      setError(err.message || 'Error al procesar la transferencia');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   return (
     <div 
@@ -168,7 +212,7 @@ export default function CobrarPage({ onBack, onVerified }) {
             ease: "linear"
           }}
           className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl"
-          style={{ backgroundColor: 'rgba(0, 255, 8, 1)' }}
+          style={{ backgroundColor: 'rgba(255, 127, 80, 0.08)' }}
         />
         <motion.div
           animate={{
@@ -205,29 +249,159 @@ export default function CobrarPage({ onBack, onVerified }) {
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 mx-auto max-w-7xl min-h-[calc(100vh-8rem)]"
+          className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 mx-auto max-w-2xl"
         >
-          <div className="p-8 md:p-12 flex flex-col min-h-full">
-            {/* Componente de Captura Facial */}
-            <FaceCaptureONNX
-              modelPath="/models/arcface.onnx"
-              embeddingDim={512}
-              endpoints={{
-                enroll: '/api/face/enroll',
-                verify: '/api/face/verify'
-              }}
-              onEnrolled={(userId) => {
-                console.log('Usuario enrolado:', userId);
-                // Aquí puedes agregar lógica adicional después del enrolamiento
-              }}
-              onVerified={(result) => {
-                console.log('Verificación completada:', result);
-                // Si la verificación fue exitosa, navegar a la página de transferencia
-                if (onVerified) {
-                  onVerified(result);
-                }
-              }}
-            />
+          <div className="p-8 md:p-12">
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-8 text-center"
+            >
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                💸 Nueva Transferencia
+              </h1>
+              <p className="text-gray-600">
+                Completa los datos para enviar tu pago
+              </p>
+            </motion.div>
+
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+              >
+                <p className="text-red-800 text-sm font-medium">{error}</p>
+              </motion.div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Wallet URL */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  🔗 URL de Wallet Destino
+                </label>
+                <input
+                  type="url"
+                  value={walletUrl}
+                  onChange={(e) => setWalletUrl(e.target.value)}
+                  placeholder="https://wallet.example.com/user"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white"
+                  disabled={isSubmitting}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Ingresa la URL del wallet del destinatario (Interledger Protocol)
+                </p>
+              </motion.div>
+
+              {/* Amount */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  💰 Monto
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-3 text-gray-500 font-medium text-lg">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white text-lg font-semibold"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Cantidad a transferir (USD)
+                </p>
+              </motion.div>
+
+              {/* Description */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  📝 Descripción
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Ej: Pago por servicios, transferencia personal, etc."
+                  rows={4}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900 bg-white resize-none"
+                  disabled={isSubmitting}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Describe el motivo de la transferencia
+                </p>
+              </motion.div>
+
+              {/* Submit Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Procesando...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      Enviar Transferencia
+                    </span>
+                  )}
+                </button>
+              </motion.div>
+
+              {/* Cancel Button */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+              >
+                <button
+                  type="button"
+                  onClick={onBack}
+                  disabled={isSubmitting}
+                  className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 font-semibold py-3 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+              </motion.div>
+            </form>
           </div>
         </motion.div>
       </div>

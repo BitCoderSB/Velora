@@ -650,21 +650,53 @@ export default function FaceCaptureONNX({
       )}
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={handleEnroll}
-          disabled={status !== 'ready' || !streamRef.current}
-          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
-        >
-          ✅ Enrolar
-        </button>
-
+      <div className="space-y-4">
+        {/* Botón Principal: Cobrar (Verificar) */}
         <button
           onClick={handleVerify}
           disabled={status !== 'ready' || !streamRef.current}
-          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
+          className="w-full text-white font-bold text-2xl py-6 rounded-2xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-2xl transform hover:scale-105"
+          style={{
+            background: status === 'ready' && streamRef.current
+              ? 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)'
+              : '#9CA3AF',
+          }}
+          onMouseEnter={(e) => {
+            if (status === 'ready' && streamRef.current) {
+              e.target.style.background = 'linear-gradient(135deg, #34D399 0%, #6EE7B7 50%, #A7F3D0 100%)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (status === 'ready' && streamRef.current) {
+              e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)';
+            }
+          }}
         >
-          🔍 Verificar
+          💰 Cobrar
+        </button>
+
+        {/* Botón Secundario: Ver Reporte Completo (Enrolar) */}
+        <button
+          onClick={handleEnroll}
+          disabled={status !== 'ready' || !streamRef.current}
+          className="w-full text-white font-semibold text-lg py-4 rounded-xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-md hover:shadow-xl transform hover:scale-102"
+          style={{
+            background: status === 'ready' && streamRef.current
+              ? 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)'
+              : '#9CA3AF',
+          }}
+          onMouseEnter={(e) => {
+            if (status === 'ready' && streamRef.current) {
+              e.target.style.background = 'linear-gradient(135deg, #34D399 0%, #6EE7B7 50%, #A7F3D0 100%)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (status === 'ready' && streamRef.current) {
+              e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)';
+            }
+          }}
+        >
+          � Ver Reporte Completo
         </button>
       </div>
 

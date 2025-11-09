@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import ProximityGlow from "@components/ui/ProximityGlow.jsx";
 
-export default function WelcomePage({ onStart }) {
+export default function WelcomePage({ onStartVendor, onStartClient }) {
   const phrases = [
     "Tu puerta de entrada al futuro de los pagos globales con Interledger Protocol. Envía, recibe y conecta activos sin fronteras",
     "Conecta el mundo financiero sin límites. Pagos instantáneos entre cualquier red de blockchain",
@@ -188,22 +188,40 @@ export default function WelcomePage({ onStart }) {
                     Cambiar de usuario
                   </button>
                   
-                  {/* Enter Button */}
+                  {/* Enter Buttons */}
                   <ProximityGlow 
-                    className="rounded-xl w-full" 
+                    className="rounded-xl w-full mb-4" 
                     c1="rgba(255,127,80,0.5)" 
                     c2="rgba(221,160,221,0.4)" 
                     radius={200} 
                     intensity={0.5}
                   >
                     <button
-                      onClick={onStart}
+                      onClick={onStartVendor}
                       className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                       style={{ 
                         background: 'linear-gradient(to right, #FF7F50, #DDA0DD, #F0E68C)',
                       }}
                     >
-                      Entrar
+                      Entrar como Vendedor
+                    </button>
+                  </ProximityGlow>
+
+                  <ProximityGlow 
+                    className="rounded-xl w-full" 
+                    c1="rgba(79,70,229,0.5)" 
+                    c2="rgba(236,72,153,0.4)" 
+                    radius={200} 
+                    intensity={0.5}
+                  >
+                    <button
+                      onClick={onStartClient}
+                      className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                      style={{ 
+                        background: 'linear-gradient(to right, #4F46E5, #7C3AED, #EC4899)',
+                      }}
+                    >
+                      Entrar como Cliente
                     </button>
                   </ProximityGlow>
                 </div>
