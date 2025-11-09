@@ -7,8 +7,36 @@ const meanEmb = embs => { const d=embs[0].length,m=new Array(d).fill(0);
   for(const e of embs) for(let i=0;i<d;i++) m[i]+=e[i];
   for(let i=0;i<d;i++) m[i]/=embs.length; return l2(m); };
 
-async function enroll({ user_id, email, embeddings, quality }) {
-  const uid = await ensureUserId({ user_id, email });
+async function enroll({ 
+  user_id, 
+  email, 
+  password, 
+  firstName, 
+  lastName, 
+  address,
+  city, 
+  country, 
+  walletUrl, 
+  keyId, 
+  privateKey,
+  pin, 
+  embeddings, 
+  quality 
+}) {
+  const uid = await ensureUserId({ 
+    user_id, 
+    email, 
+    password, 
+    firstName, 
+    lastName, 
+    address,
+    city, 
+    country, 
+    walletUrl, 
+    keyId,
+    privateKey,
+    pin 
+  });
   const template = meanEmb(embeddings.map(l2));
   const face_id = await insertTemplate({ user_id: uid, emb: template, quality });
   return { user_id: uid, face_id };
@@ -20,6 +48,12 @@ async function verify({ emb, pos_id, liveness_ok }) {
   const best = rows[0], s = Number(best.score);
   const decision = s>=ACCEPT?'accept': s>=GRAY?'gray':'reject';
   await logAuth({ user_id:best.user_id, pos_id, score:s, liveness_ok, decision });
-  return { match: decision==='accept', score: s, user_id: best.user_id, decision };
+  return { 
+    match: decision==='accept', 
+    score: s, 
+    user_id: best.user_id, 
+    decision,
+    cliente: decision === 'accept' ? { nombre: best.nombre, email: best.email } : null
+  };
 }
 export { enroll, verify };

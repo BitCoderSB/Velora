@@ -1,36 +1,76 @@
 import { pool } from '../db.js'; // ruta relativa a este repo
+import bcrypt from 'bcrypt';
 
-async function ensureUserId({ user_id, email }) {
+async function ensureUserId({ 
+  user_id, 
+  email, 
+  password, 
+  firstName, 
+  lastName, 
+  address,
+  city, 
+  country, 
+  walletUrl, 
+  keyId,
+  privateKey,
+  pin 
+}) {
   if (user_id) return user_id;
-  if (!email) throw new Error('user_id or email required');
   
+  const client = await pool.connect();
   try {
-    // Buscar usuario existente
-    let result = await pool.query('SELECT id FROM users WHERE email=$1', [email]);
+    await client.query('BEGIN');
     
-    // Si no existe, crear uno nuevo
-    if (!result.rows[0]) {
-      console.log(`👤 Creando nuevo usuario con email: ${email}`);
-      
-      // Intentar con la estructura de tabla existente
-      try {
-        result = await pool.query(
-          'INSERT INTO users (email, payment_pointer, nip) VALUES ($1, $2, $3) RETURNING id',
-          [email, `$${email}`, '$2b$10$defaulthash'] // Valores por defecto temporales
-        );
-      } catch (insertError) {
-        // Si falla, intentar con estructura más simple
-        result = await pool.query(
-          'INSERT INTO users (email) VALUES ($1) RETURNING id',
-          [email]
-        );
-      }
+    // Verificar si el email ya existe
+    let result = await client.query('SELECT id FROM users WHERE email=$1', [email]);
+    
+    if (result.rows[0]) {
+      throw new Error('El email ya está registrado');
     }
     
-    return result.rows[0].id;
+    console.log(`👤 Creando nuevo usuario: ${firstName} ${lastName} <${email}>`);
+    
+    // Hash de password y PIN
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPin = await bcrypt.hash(pin, 10);
+    
+    // 1. Crear usuario en tabla users
+    result = await client.query(
+      `INSERT INTO users (email, password, nip, is_client, is_vendor) 
+       VALUES ($1, $2, $3, true, false) 
+       RETURNING id`,
+      [email, hashedPassword, hashedPin]
+    );
+    
+    const newUserId = result.rows[0].id;
+    
+    // 2. Crear perfil de cliente en client_profile
+    await client.query(
+      `INSERT INTO client_profile (user_id, nombre, apellido, direccion, ciudad, pais) 
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [newUserId, firstName, lastName, address, city, country]
+    );
+    
+    // 3. Guardar llaves de Interledger en client_keys
+    // TODO: Cifrar la private_key antes de guardarla
+    const hashedPrivateKey = privateKey ? await bcrypt.hash(privateKey, 10) : '';
+    
+    await client.query(
+      `INSERT INTO client_keys (client_user_id, key_id, url, public_key, private_key) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [newUserId, keyId, walletUrl, '', hashedPrivateKey]
+    );
+    
+    await client.query('COMMIT');
+    console.log(`✅ Usuario creado exitosamente con ID: ${newUserId}`);
+    
+    return newUserId;
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error en ensureUserId:', error);
-    throw new Error(`No se pudo crear/obtener usuario: ${error.message}`);
+    throw new Error(`No se pudo crear usuario: ${error.message}`);
+  } finally {
+    client.release();
   }
 }
 async function insertTemplate({ user_id, emb, quality }) {
@@ -42,9 +82,14 @@ async function insertTemplate({ user_id, emb, quality }) {
 }
 async function topK({ emb, k=5 }) {
   const { rows } = await pool.query(
-    `SELECT user_id, 1 - (emb <#> $1::vector) AS score
-     FROM face_embeddings
-     ORDER BY emb <#> $1::vector
+    `SELECT fe.user_id, 
+            cp.nombre || ' ' || cp.apellido AS nombre, 
+            u.email, 
+            1 - (fe.emb <#> $1::vector) AS score
+     FROM face_embeddings fe
+     JOIN users u ON fe.user_id = u.id
+     JOIN client_profile cp ON fe.user_id = cp.user_id
+     ORDER BY fe.emb <#> $1::vector
      LIMIT $2`,
     [emb.join(','), k]
   );
