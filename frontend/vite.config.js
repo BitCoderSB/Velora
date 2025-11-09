@@ -13,4 +13,30 @@ export default defineConfig({
       "@animations": path.resolve(__dirname, "./src/animations"),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
+    fs: {
+      allow: ['..']
+    }
+  },
+  optimizeDeps: {
+    exclude: ['onnxruntime-web']
+  },
+  build: {
+    rollupOptions: {
+      external: []
+    }
+  },
+  worker: {
+    format: 'es'
+  },
+  define: {
+    global: 'globalThis'
+  }
 });
