@@ -12,6 +12,7 @@
     "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
     "chart.js": "^4.4.4",
     "dayjs": "^1.11.13",
+    "face-api.js": "^0.22.2",
     "framer-motion": "^11.2.10",
     "globe.gl": "^2.44.0",
     "js-cookie": "^3.0.5",

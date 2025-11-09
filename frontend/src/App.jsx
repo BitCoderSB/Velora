@@ -10,9 +10,10 @@ import CobrarPage from '@components/pages/CobrarPage.jsx';
 import ConfirmTransferPage from '@components/pages/ConfirmTransferPage.jsx';
 import FinalConfirmationPage from '@components/pages/FinalConfirmationPage.jsx';
 import TransferReceiptPage from '@components/pages/TransferReceiptPage.jsx';
+import FaceTestPage from '@components/pages/FaceTestPage.jsx';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('landing'); // 'landing', 'welcome', 'register', 'registro2', 'registrofacial', 'home', 'clientDashboard', 'cobrar', 'transfer', 'confirm', 'finalConfirm', 'receipt'
+  const [currentPage, setCurrentPage] = useState('landing'); // 'landing', 'welcome', 'register', 'registro2', 'registrofacial', 'home', 'clientDashboard', 'cobrar', 'transfer', 'confirm', 'finalConfirm', 'receipt', 'faceTest'
   const [pendingTransfer, setPendingTransfer] = useState(null);
   const [confirmationUrl, setConfirmationUrl] = useState(null);
   const [transferResult, setTransferResult] = useState(null);
@@ -278,6 +279,12 @@ export default function App() {
         <TransferReceiptPage 
           transferResult={transferResult}
           onBack={handleReceiptBack}
+        />
+      )}
+
+      {currentPage === 'faceTest' && (
+        <FaceTestPage 
+          onBack={navigateToWelcome}
         />
       )}
     </div>

@@ -1,23 +1,68 @@
-# Modelo ArcFace para Reconocimiento Facial
+# Modelos de face-api.js
 
-Este directorio debe contener el modelo ArcFace ONNX (249 MB) para el reconocimiento facial.
+Esta carpeta debe contener los modelos pre-entrenados de face-api.js para que el reconocimiento facial funcione.
 
-## Descargar el Modelo
+## Modelos necesarios
 
-**Archivo esperado**: `arcface.onnx`
+Descarga los siguientes modelos desde el repositorio oficial de face-api.js:
+https://github.com/justadudewhohacks/face-api.js/tree/master/weights
 
-### Opción 1: Descarga directa
-```bash
-curl -L -o arcface.onnx "https://github.com/onnx/models/raw/main/validated/vision/body_analysis/arcface/model/arcface-resnet100-8.onnx"
+### Modelos requeridos:
+
+1. **tiny_face_detector_model-weights_manifest.json**
+2. **tiny_face_detector_model-shard1**
+3. **face_landmark_68_model-weights_manifest.json**
+4. **face_landmark_68_model-shard1**
+5. **face_recognition_model-weights_manifest.json**
+6. **face_recognition_model-shard1**
+7. **face_recognition_model-shard2**
+8. **face_expression_model-weights_manifest.json**
+9. **face_expression_model-shard1**
+
+## Instalación rápida
+
+### Opción 1: Descarga manual
+1. Ve a: https://github.com/justadudewhohacks/face-api.js/tree/master/weights
+2. Descarga todos los archivos mencionados arriba
+3. Colócalos en esta carpeta `/public/models/`
+
+### Opción 2: Usando PowerShell (Recomendado para Windows)
+Ejecuta este script en PowerShell desde esta carpeta:
+
+```powershell
+$baseUrl = "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/"
+$files = @(
+    "tiny_face_detector_model-weights_manifest.json",
+    "tiny_face_detector_model-shard1",
+    "face_landmark_68_model-weights_manifest.json",
+    "face_landmark_68_model-shard1",
+    "face_recognition_model-weights_manifest.json",
+    "face_recognition_model-shard1",
+    "face_recognition_model-shard2",
+    "face_expression_model-weights_manifest.json",
+    "face_expression_model-shard1"
+)
+
+foreach ($file in $files) {
+    Write-Host "Descargando $file..."
+    Invoke-WebRequest -Uri "$baseUrl$file" -OutFile $file
+}
+
+Write-Host "✅ Todos los modelos descargados correctamente"
 ```
 
-### Opción 2: Descarga manual
-1. Ir a: https://github.com/onnx/models/tree/main/validated/vision/body_analysis/arcface
-2. Descargar `arcface-resnet100-8.onnx` 
-3. Renombrar a `arcface.onnx`
-4. Colocar en este directorio
+## Verificación
 
-## Nota
-Este archivo está excluido del control de versiones debido a su gran tamaño (249 MB).
+Después de descargar, verifica que tengas estos archivos en esta carpeta:
+- ✅ tiny_face_detector_model-weights_manifest.json
+- ✅ tiny_face_detector_model-shard1
+- ✅ face_landmark_68_model-weights_manifest.json
+- ✅ face_landmark_68_model-shard1
+- ✅ face_recognition_model-weights_manifest.json
+- ✅ face_recognition_model-shard1
+- ✅ face_recognition_model-shard2
+- ✅ face_expression_model-weights_manifest.json
+- ✅ face_expression_model-shard1
 
-El componente FaceCaptureONNX busca el modelo en: `/models/arcface.onnx`
+## Tamaño aproximado
+Los modelos ocupan aproximadamente **5-10 MB** en total.

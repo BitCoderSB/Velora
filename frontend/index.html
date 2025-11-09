@@ -2,9 +2,40 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Skylikely</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Velora - Reconocimiento Facial</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <style>
+      /* Prevenir zoom en inputs en iOS */
+      @media screen and (max-width: 768px) {
+        input, select, textarea {
+          font-size: 16px !important;
+        }
+      }
+      
+      /* Scroll suave en toda la app */
+      html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Prevenir rebote en iOS */
+      body {
+        overscroll-behavior-y: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      /* Optimizar video en móviles */
+      video {
+        max-width: 100%;
+        height: auto;
+        object-fit: cover;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

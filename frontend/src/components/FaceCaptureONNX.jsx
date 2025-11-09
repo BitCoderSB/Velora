@@ -1,445 +1,337 @@
-import { useState, useRef, useEffect } from 'react';
-import * as ort from 'onnxruntime-web';
-import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+// FaceCaptureONNX.jsx
+import { useState, useRef, useEffect } from "react";
+import * as ort from "onnxruntime-web";
+import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
-// Configurar ONNX Runtime Web
+/* ---------- ONNX Runtime Web: WASM paths y opciones ---------- */
 ort.env.wasm.wasmPaths = {
-  'ort-wasm.wasm': '/wasm/ort-wasm.wasm',
-  'ort-wasm-threaded.wasm': '/wasm/ort-wasm-threaded.wasm',
-  'ort-wasm-simd.wasm': '/wasm/ort-wasm-simd.wasm',
-  'ort-wasm-simd-threaded.wasm': '/wasm/ort-wasm-simd-threaded.wasm'
+  "ort-wasm.wasm": "/wasm/ort-wasm.wasm",
+  "ort-wasm-simd.wasm": "/wasm/ort-wasm-simd.wasm",
+  "ort-wasm-threaded.wasm": "/wasm/ort-wasm-threaded.wasm",
+  "ort-wasm-simd-threaded.wasm": "/wasm/ort-wasm-simd-threaded.wasm",
 };
 ort.env.wasm.proxy = false;
 ort.env.wasm.numThreads = 1;
 
-/**
- * FaceCaptureONNX Component
- * 
- * Captura rostro con cámara, alinea por landmarks (MediaPipe), 
- * genera embeddings con ArcFace ONNX, y envía al backend.
- * 
- * Props:
- * - modelPath: ruta del modelo ONNX (default: "/models/arcface.onnx")
- * - embeddingDim: dimensión del embedding (default: 512)
- * - endpoints: { enroll, verify } URLs del backend
- * - onEnrolled: callback(userId) cuando enrolamiento exitoso
- * - onVerified: callback(result) cuando verificación exitosa
- */
 export default function FaceCaptureONNX({
-  modelPath = '/models/arcface.onnx',
+  modelPath = "/models/arcface.onnx",
   embeddingDim = 512,
-  endpoints = {
-    enroll: '/api/face/enroll',
-    verify: '/api/face/verify'
-  },
+  endpoints = { enroll: "/api/face/enroll", verify: "/api/face/verify" },
   onEnrolled = null,
   onVerified = null,
   enableLivenessCheck = true,
-  // Props para enrolamiento (ahora recibe todos los datos del usuario)
-  userData = null
+  userData = null,
+  // ArcFace suele usar 112x112 RGB y normalización [-1,1]
+  inputSize = 112,
+  colorOrder = "RGB", // "RGB" | "BGR" si tu modelo lo exige
 }) {
-  // Estados
-  const [status, setStatus] = useState('loadingModels'); // loadingModels, cameraOn, noFace, ready, inferencing, error
-  const [errorMsg, setErrorMsg] = useState('');
+  /* ---------- State ---------- */
+  const [status, setStatus] = useState("loadingModels"); // loadingModels|cameraOn|noFace|ready|inferencing|error
+  const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState(null);
-  const [livenessCheck, setLivenessCheck] = useState(null); // 'blink' | 'turn' | null
+  const [livenessCheck, setLivenessCheck] = useState(null); // 'blink'|'turn'|null
   const [enrollmentProgress, setEnrollmentProgress] = useState(0);
-  const [provider, setProvider] = useState('');
+  const [provider, setProvider] = useState("");
 
-  // Referencias
+  /* ---------- Refs ---------- */
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const sessionRef = useRef(null);
   const faceLandmarkerRef = useRef(null);
   const lastLandmarksRef = useRef(null);
-  const animationFrameRef = useRef(null);
+  const rafIdRef = useRef(null);
+  const detectAbortRef = useRef({ aborted: false });
 
-  // ==================== HELPERS ====================
-
-  /**
-   * Normalización L2 de un vector
-   */
+  /* ---------- Utils ---------- */
   const l2norm = (vec) => {
-    const sum = vec.reduce((acc, val) => acc + val * val, 0);
-    const norm = Math.sqrt(sum);
-    return vec.map(v => v / (norm + 1e-10));
+    const sum = vec.reduce((a, v) => a + v * v, 0);
+    const n = Math.sqrt(sum) || 1e-10;
+    return vec.map((v) => v / n);
   };
 
-  /**
-   * Promedia múltiples embeddings y normaliza
-   */
   const averageEmbeddings = (embList) => {
     const dim = embList[0].length;
-    const avg = new Array(dim).fill(0);
+    const acc = new Float32Array(dim);
     for (const emb of embList) {
-      for (let i = 0; i < dim; i++) {
-        avg[i] += emb[i];
-      }
+      for (let i = 0; i < dim; i++) acc[i] += emb[i];
     }
-    for (let i = 0; i < dim; i++) {
-      avg[i] /= embList.length;
-    }
-    return l2norm(avg);
+    for (let i = 0; i < dim; i++) acc[i] /= embList.length;
+    return Array.from(l2norm(Array.from(acc)));
   };
 
-  /**
-   * Convierte canvas a tensor NCHW Float32 [1,3,112,112] normalizado [0..1]
-   */
+  // canvas -> Float32 NCHW [1,3,H,W] con normalización [-1,1]
   const toNCHWFloat32 = (canvas) => {
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.getImageData(0, 0, 112, 112);
-    const data = imgData.data;
-    const float32 = new Float32Array(1 * 3 * 112 * 112);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const { width, height } = canvas;
+    const img = ctx.getImageData(0, 0, width, height).data;
+    const plane = width * height;
+    const out = new Float32Array(3 * plane);
 
-    for (let i = 0; i < 112 * 112; i++) {
-      float32[i] = data[i * 4] / 255.0; // R
-      float32[112 * 112 + i] = data[i * 4 + 1] / 255.0; // G
-      float32[2 * 112 * 112 + i] = data[i * 4 + 2] / 255.0; // B
+    // Canal order y normalización
+    // x_norm = (x/255 - 0.5)/0.5  => [-1,1]
+    const norm = (v) => (v / 255 - 0.5) / 0.5;
+
+    for (let i = 0; i < plane; i++) {
+      const r = img[i * 4];
+      const g = img[i * 4 + 1];
+      const b = img[i * 4 + 2];
+
+      let c0 = r,
+        c1 = g,
+        c2 = b;
+      if (colorOrder === "BGR") {
+        c0 = b;
+        c1 = g;
+        c2 = r;
+      }
+
+      out[i] = norm(c0);
+      out[plane + i] = norm(c1);
+      out[2 * plane + i] = norm(c2);
     }
-
-    return float32;
+    return out;
   };
 
-  /**
-   * Alineación facial usando landmarks (ojos y nariz)
-   * Aplica transformación afín a 112x112
-   */
-  const alignByLandmarks = (videoElement, landmarks) => {
-    try {
-      // Validar parámetros de entrada
-      if (!videoElement || !landmarks || !Array.isArray(landmarks)) {
-        console.warn('Invalid parameters for alignByLandmarks');
-        return null;
-      }
+  // Alineación simple por ojos
+  const alignByLandmarks = (videoEl, lm) => {
+    if (!videoEl || !lm || !Array.isArray(lm)) return null;
+    const vw = videoEl.videoWidth || 0;
+    const vh = videoEl.videoHeight || 0;
+    if (vw <= 0 || vh <= 0) return null;
 
-      // Verificar dimensiones del video
-      const vw = videoElement.videoWidth || videoElement.width || 0;
-      const vh = videoElement.videoHeight || videoElement.height || 0;
+    const leftEye = lm[33];
+    const rightEye = lm[263];
+    const nose = lm[1];
+    const ok = (p) =>
+      p &&
+      typeof p.x === "number" &&
+      typeof p.y === "number" &&
+      p.x >= 0 &&
+      p.x <= 1 &&
+      p.y >= 0 &&
+      p.y <= 1;
+    if (!ok(leftEye) || !ok(rightEye) || !ok(nose)) return null;
 
-      if (vw <= 0 || vh <= 0) {
-        console.warn('Invalid video dimensions in alignByLandmarks:', { vw, vh });
-        return null;
-      }
+    const leftPx = { x: leftEye.x * vw, y: leftEye.y * vh };
+    const rightPx = { x: rightEye.x * vw, y: rightEye.y * vh };
 
-      // MediaPipe devuelve landmarks normalizados [0..1]
-      // Índices aproximados: ojo izq ~33, ojo der ~263, nariz ~1
-      const leftEye = landmarks[33];
-      const rightEye = landmarks[263];
-      const nose = landmarks[1];
+    const dx = rightPx.x - leftPx.x;
+    const dy = rightPx.y - leftPx.y;
+    const angle = Math.atan2(dy, dx);
 
-      if (!leftEye || !rightEye || !nose) {
-        console.warn('Missing required landmarks for alignment');
-        return null;
-      }
+    const eyeCx = (leftPx.x + rightPx.x) / 2;
+    const eyeCy = (leftPx.y + rightPx.y) / 2;
 
-      // Validar que los landmarks sean válidos
-      const isValidLandmark = (landmark) => {
-        return landmark && 
-               typeof landmark.x === 'number' && 
-               typeof landmark.y === 'number' &&
-               landmark.x >= 0 && landmark.x <= 1 &&
-               landmark.y >= 0 && landmark.y <= 1;
-      };
+    const eyeDist = Math.hypot(dx, dy);
+    const desiredEyeDist = 40; // píxeles dentro de 112x112
+    const scale = desiredEyeDist / Math.max(eyeDist, 1e-10);
 
-      if (!isValidLandmark(leftEye) || !isValidLandmark(rightEye) || !isValidLandmark(nose)) {
-        console.warn('Invalid landmark coordinates');
-        return null;
-      }
+    const out = document.createElement("canvas");
+    out.width = inputSize;
+    out.height = inputSize;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = 112;
-      canvas.height = 112;
-      const ctx = canvas.getContext('2d');
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.save();
+    ctx.translate(inputSize / 2, inputSize / 2);
+    ctx.rotate(-angle);
+    ctx.scale(scale, scale);
+    ctx.translate(-eyeCx, -eyeCy);
+    ctx.drawImage(videoEl, 0, 0, vw, vh);
+    ctx.restore();
 
-      // Convertir coordenadas normalizadas a píxeles
-      const leftEyePx = { x: leftEye.x * vw, y: leftEye.y * vh };
-      const rightEyePx = { x: rightEye.x * vw, y: rightEye.y * vh };
-      const nosePx = { x: nose.x * vw, y: nose.y * vh };
-
-      // Calcular ángulo de rotación
-      const dx = rightEyePx.x - leftEyePx.x;
-      const dy = rightEyePx.y - leftEyePx.y;
-      const angle = Math.atan2(dy, dx);
-
-      // Centro entre ojos
-      const eyeCenterX = (leftEyePx.x + rightEyePx.x) / 2;
-      const eyeCenterY = (leftEyePx.y + rightEyePx.y) / 2;
-
-      // Escala: distancia entre ojos como referencia
-      const eyeDist = Math.sqrt(dx * dx + dy * dy);
-      const desiredEyeDist = 40; // píxeles en imagen 112x112
-      const scale = desiredEyeDist / Math.max(eyeDist, 1e-10);
-
-      // Aplicar transformación con validaciones
-      ctx.save();
-      ctx.translate(56, 56); // centro del canvas
-      ctx.rotate(-angle);
-      ctx.scale(scale, scale);
-      ctx.translate(-eyeCenterX, -eyeCenterY);
-      ctx.drawImage(videoElement, 0, 0, vw, vh);
-      ctx.restore();
-
-      return canvas;
-    } catch (error) {
-      console.error('Error in alignByLandmarks:', error);
-      return null;
-    }
+    return out;
   };
 
-  /**
-   * Verifica liveness: compara landmarks actuales con anteriores
-   * Retorna true si hay suficiente cambio (movimiento)
-   */
-  const checkLivenessMovement = (currentLandmarks) => {
+  const checkLivenessMovement = (curr) => {
     if (!lastLandmarksRef.current) {
-      lastLandmarksRef.current = currentLandmarks;
+      lastLandmarksRef.current = curr;
       return false;
     }
-
-    // Comparar 3 puntos clave: ojos y nariz
-    const indices = [33, 263, 1];
-    let totalDist = 0;
-
-    for (const idx of indices) {
-      const curr = currentLandmarks[idx];
-      const prev = lastLandmarksRef.current[idx];
-      if (curr && prev) {
-        const dx = curr.x - prev.x;
-        const dy = curr.y - prev.y;
-        totalDist += Math.sqrt(dx * dx + dy * dy);
+    const idx = [33, 263, 1];
+    let d = 0;
+    for (const i of idx) {
+      const a = curr[i];
+      const b = lastLandmarksRef.current[i];
+      if (a && b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        d += Math.hypot(dx, dy);
       }
     }
-
-    lastLandmarksRef.current = currentLandmarks;
-
-    // Umbral de movimiento
-    const threshold = 0.02; // ajustable según pruebas
-    return totalDist > threshold;
+    lastLandmarksRef.current = curr;
+    return d > 0.02;
   };
 
-  // ==================== CARGA DE MODELOS ====================
-
+  /* ---------- Carga de modelos ---------- */
   useEffect(() => {
     let mounted = true;
 
-    const loadModels = async () => {
+    const setup = async () => {
       try {
-        setStatus('loadingModels');
-        setErrorMsg('');
+        setStatus("loadingModels");
+        setErrorMsg("");
 
-        // 1. Cargar MediaPipe Face Landmarker
+        // MediaPipe Face Landmarker
         const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
         );
-        
         const landmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
-            delegate: 'GPU'
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+            delegate: "GPU",
           },
-          runningMode: 'VIDEO',
+          runningMode: "VIDEO",
           numFaces: 1,
           minFaceDetectionConfidence: 0.5,
           minFacePresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5
+          minTrackingConfidence: 0.5,
         });
-
         if (!mounted) return;
         faceLandmarkerRef.current = landmarker;
 
-        // 2. Verificar existencia del modelo ArcFace y usar mock si no existe
+        // ONNX: intenta WebGPU y cae a WASM
         let session = null;
-        let usedProvider = 'mock';
-        let isModelMocked = false;
-        
+        let epUsed = "mock";
         try {
-          const response = await fetch(modelPath, { method: 'HEAD' });
-          if (!response.ok) {
-            throw new Error('Modelo no encontrado');
-          }
-
-          // 3. Cargar modelo ONNX ArcFace real
-          usedProvider = 'wasm';
-          
-          // Configurar el entorno WASM específicamente
-          try {
-            // Intentar WebGPU primero si está disponible
-            if ('gpu' in navigator) {
-              try {
-                session = await ort.InferenceSession.create(modelPath, {
-                  executionProviders: ['webgpu'],
-                  graphOptimizationLevel: 'all'
-                });
-                usedProvider = 'webgpu';
-              } catch (webgpuError) {
-                console.warn('WebGPU falló:', webgpuError);
-                throw webgpuError;
-              }
-            } else {
-              throw new Error('WebGPU no disponible');
+          if ("gpu" in navigator) {
+            try {
+              session = await ort.InferenceSession.create(modelPath, {
+                executionProviders: ["webgpu"],
+                graphOptimizationLevel: "all",
+              });
+              epUsed = "webgpu";
+            } catch {
+              // fallback a WASM
+              session = await ort.InferenceSession.create(modelPath, {
+                executionProviders: ["wasm"],
+                graphOptimizationLevel: "all",
+              });
+              epUsed = "wasm";
             }
-          } catch (e) {
-            console.log('Usando WASM backend...');
-            // Fallback a WASM
+          } else {
             session = await ort.InferenceSession.create(modelPath, {
-              executionProviders: [
-                {
-                  name: 'wasm',
-                  deviceType: 'cpu',
-                  executionMode: 'sequential'
-                }
-              ],
-              graphOptimizationLevel: 'basic',
-              enableMemPattern: false,
-              enableCpuMemArena: false
+              executionProviders: ["wasm"],
+              graphOptimizationLevel: "all",
             });
-            usedProvider = 'wasm';
+            epUsed = "wasm";
           }
-        } catch (modelError) {
-          console.warn('Modelo ArcFace no disponible, usando mock para desarrollo:', modelError.message);
-          // Crear un mock del modelo para desarrollo
+        } catch (e) {
+          console.warn("ArcFace ONNX no cargó. Uso MOCK. Detalle:", e?.message);
           session = null;
-          usedProvider = 'mock';
-          isModelMocked = true;
+          epUsed = "mock";
         }
 
         if (!mounted) return;
         sessionRef.current = session;
-        setProvider(usedProvider);
-
-        const statusMsg = isModelMocked 
-          ? `✅ Modelos cargados (ArcFace: MOCK para desarrollo, MediaPipe: ${usedProvider})`
-          : `✅ Modelos cargados: ${usedProvider}`;
-        
-        console.log(statusMsg);
-        setStatus('ready');
-      } catch (err) {
-        console.error('Error cargando modelos:', err);
-        if (mounted) {
-          setErrorMsg(`Error al cargar modelos: ${err.message}`);
-          setStatus('error');
-        }
+        setProvider(epUsed);
+        setStatus("ready");
+      } catch (e) {
+        if (!mounted) return;
+        setErrorMsg(`Error al cargar modelos: ${e?.message || e}`);
+        setStatus("error");
       }
     };
 
-    loadModels();
+    setup();
 
     return () => {
       mounted = false;
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      detectAbortRef.current.aborted = true;
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      if (faceLandmarkerRef.current) {
+        try {
+          faceLandmarkerRef.current.close();
+        } catch {}
+        faceLandmarkerRef.current = null;
       }
     };
-  }, [modelPath]);
+  }, [modelPath, inputSize, colorOrder]);
 
-  // ==================== CÁMARA ====================
-
+  /* ---------- Cámara ---------- */
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'user', 
-          width: { ideal: 640 }, 
+        video: {
+          facingMode: "user",
+          width: { ideal: 640 },
           height: { ideal: 480 },
-          frameRate: { ideal: 15, max: 30 }
-        }
+          frameRate: { ideal: 15, max: 30 },
+        },
+        audio: false,
       });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setStatus('cameraOn');
-        
-        // Esperar a que el video esté completamente cargado
-        videoRef.current.onloadedmetadata = () => {
-          console.log(`Video cargado: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
-          // Dar un pequeño delay para asegurar que el video esté listo
-          setTimeout(() => {
-            if (videoRef.current && videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
-              detectFaceLoop();
-            } else {
-              console.warn('Video sin dimensiones válidas');
-              setErrorMsg('Error: Video sin dimensiones válidas');
-              setStatus('error');
-            }
-          }, 100);
-        };
-        
-        // Fallback si onloadedmetadata no se dispara
-        setTimeout(() => {
-          if (status === 'cameraOn' && videoRef.current && 
-              videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
-            detectFaceLoop();
-          }
-        }, 1000);
-      }
-    } catch (err) {
-      console.error('Error accediendo a cámara:', err);
-      setErrorMsg(`No se pudo acceder a la cámara: ${err.message}`);
-      setStatus('error');
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      streamRef.current = stream;
+      setStatus("cameraOn");
+
+      videoRef.current.onloadedmetadata = () => {
+        if (!videoRef.current) return;
+        if (videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
+          detectAbortRef.current.aborted = false;
+          detectFaceLoop();
+        } else {
+          setErrorMsg("Video sin dimensiones válidas");
+          setStatus("error");
+        }
+      };
+    } catch (e) {
+      setErrorMsg(`No se pudo acceder a la cámara: ${e?.message || e}`);
+      setStatus("error");
     }
   };
 
   const stopCamera = () => {
+    detectAbortRef.current.aborted = true;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = null;
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    setStatus('ready');
+    setStatus("ready");
   };
 
-  // ==================== DETECCIÓN DE ROSTRO ====================
-
+  /* ---------- Detección ---------- */
   const detectFaceLoop = () => {
     const video = videoRef.current;
-    if (!video || !faceLandmarkerRef.current) return;
+    const lm = faceLandmarkerRef.current;
+    if (!video || !lm) return;
 
-    const detect = () => {
-      if (status === 'inferencing' || !faceLandmarkerRef.current) {
-        animationFrameRef.current = requestAnimationFrame(detect);
-        return;
-      }
+    const tick = () => {
+      if (detectAbortRef.current.aborted) return;
 
-      // Validar que el video tenga dimensiones válidas
-      if (!video.videoWidth || !video.videoHeight || 
-          video.videoWidth === 0 || video.videoHeight === 0) {
-        // Video aún no está listo, intentar de nuevo en el próximo frame
-        animationFrameRef.current = requestAnimationFrame(detect);
+      if (!video.videoWidth || !video.videoHeight) {
+        rafIdRef.current = requestAnimationFrame(tick);
         return;
       }
 
       try {
-        const results = faceLandmarkerRef.current.detectForVideo(
-          video,
-          performance.now()
-        );
-
-        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-          setStatus('ready');
-          // Dibujar landmarks en canvas (opcional)
-          drawLandmarks(results.faceLandmarks[0]);
+        const res = lm.detectForVideo(video, performance.now());
+        if (res.faceLandmarks && res.faceLandmarks.length > 0) {
+          if (status !== "inferencing") setStatus("ready");
+          drawLandmarks(res.faceLandmarks[0]);
         } else {
-          setStatus('noFace');
+          setStatus("noFace");
+          clearCanvas();
         }
-      } catch (error) {
-        console.error('Error en detección facial:', error);
-        // Si hay error en MediaPipe, intentar de nuevo después de un delay
-        setTimeout(() => {
-          if (animationFrameRef.current) {
-            animationFrameRef.current = requestAnimationFrame(detect);
-          }
-        }, 100);
-        return;
+      } catch {
+        // ignora frame con error y continúa
       }
 
-      animationFrameRef.current = requestAnimationFrame(detect);
+      rafIdRef.current = requestAnimationFrame(tick);
     };
 
-    detect();
+    rafIdRef.current = requestAnimationFrame(tick);
+  };
+
+  const clearCanvas = () => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, c.width, c.height);
   };
 
   const drawLandmarks = (landmarks) => {
@@ -447,330 +339,199 @@ export default function FaceCaptureONNX({
     const video = videoRef.current;
     if (!canvas || !video) return;
 
-    // Verificar dimensiones del video
-    const width = video.videoWidth || video.width || 0;
-    const height = video.videoHeight || video.height || 0;
+    const w = video.videoWidth || 0;
+    const h = video.videoHeight || 0;
+    if (w <= 0 || h <= 0) return;
 
-    if (width <= 0 || height <= 0) {
-      console.warn('Invalid video dimensions:', { width, height });
-      return;
-    }
+    const ctx = canvas.getContext("2d");
+    canvas.width = w;
+    canvas.height = h;
+    ctx.clearRect(0, 0, w, h);
 
-    // Verificar landmarks válidos
-    if (!landmarks || !Array.isArray(landmarks) || landmarks.length === 0) {
-      console.warn('Invalid landmarks data');
-      return;
-    }
-
-    try {
-      const ctx = canvas.getContext('2d');
-      canvas.width = width;
-      canvas.height = height;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = '#00ff00';
-      ctx.lineWidth = 1;
-
-      // Dibujar puntos clave con validación
-      landmarks.forEach((point, index) => {
-        if (point && typeof point.x === 'number' && typeof point.y === 'number') {
-          const x = point.x * canvas.width;
-          const y = point.y * canvas.height;
-          
-          if (x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height) {
-            ctx.beginPath();
-            ctx.arc(x, y, 2, 0, 2 * Math.PI);
-            ctx.fill();
-          }
+    ctx.fillStyle = "#00ff00";
+    for (const p of landmarks) {
+      if (p && typeof p.x === "number" && typeof p.y === "number") {
+        const x = p.x * w;
+        const y = p.y * h;
+        if (x >= 0 && x <= w && y >= 0 && y <= h) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+          ctx.fill();
         }
-      });
-    } catch (error) {
-      console.error('Error drawing landmarks:', error);
-    }
-  };
-
-  // ==================== INFERENCIA ====================
-
-  /**
-   * Captura y genera embedding de una sola imagen
-   */
-  const captureEmbedding = async () => {
-    const video = videoRef.current;
-    if (!video || !faceLandmarkerRef.current) {
-      throw new Error('Modelos no listos');
-    }
-
-    // Validar dimensiones del video
-    if (!video.videoWidth || !video.videoHeight || 
-        video.videoWidth === 0 || video.videoHeight === 0) {
-      throw new Error('Video no tiene dimensiones válidas');
-    }
-
-    // Detectar landmarks primero para validar que hay rostro
-    const results = faceLandmarkerRef.current.detectForVideo(video, performance.now());
-    
-    if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
-      throw new Error('No se detectó rostro');
-    }
-
-    // Si no hay modelo real (mock), generar embedding sintético
-    if (!sessionRef.current || provider === 'mock') {
-      console.log('🔧 Generando embedding mock para desarrollo');
-      
-      // Crear embedding sintético basado en características del rostro detectado
-      const landmarks = results.faceLandmarks[0];
-      const leftEye = landmarks[33];
-      const rightEye = landmarks[263];
-      const nose = landmarks[1];
-      
-      // Generar embedding determinístico basado en proporciones faciales
-      const eyeDistance = Math.sqrt(
-        Math.pow(rightEye.x - leftEye.x, 2) + 
-        Math.pow(rightEye.y - leftEye.y, 2)
-      );
-      
-      const noseToEyeCenter = Math.sqrt(
-        Math.pow(nose.x - (leftEye.x + rightEye.x) / 2, 2) + 
-        Math.pow(nose.y - (leftEye.y + rightEye.y) / 2, 2)
-      );
-      
-      // Crear vector base usando características faciales
-      const seed = Math.floor((eyeDistance + noseToEyeCenter) * 10000) % 1000;
-      const embedding = Array.from({ length: embeddingDim }, (_, i) => {
-        const pseudoRandom = Math.sin(seed + i * 0.1) * Math.cos(seed + i * 0.2);
-        return pseudoRandom;
-      });
-      
-      return l2norm(embedding);
-    }
-
-    // Proceso normal con modelo real
-    const landmarks = results.faceLandmarks[0];
-
-    // Alinear rostro
-    const alignedCanvas = alignByLandmarks(video, landmarks);
-    if (!alignedCanvas) {
-      throw new Error('Error en alineación facial');
-    }
-
-    // Convertir a tensor
-    const inputTensor = toNCHWFloat32(alignedCanvas);
-    const tensor = new ort.Tensor('float32', inputTensor, [1, 3, 112, 112]);
-
-    // Inferencia con nombres de input comunes para ArcFace
-    let feeds;
-    const inputNames = sessionRef.current.inputNames;
-    const inputName = inputNames[0]; // Usar el primer input name del modelo
-    feeds = { [inputName]: tensor };
-
-    console.log(`🧠 Ejecutando inferencia con input: ${inputName}`);
-    const outputs = await sessionRef.current.run(feeds);
-
-    // Detectar output key automáticamente
-    const outputNames = sessionRef.current.outputNames;
-    const outputKeys = Object.keys(outputs);
-    console.log(`📊 Outputs disponibles:`, outputKeys);
-    
-    let embeddingKey = outputKeys.find(k => 
-      k.includes('embedding') || 
-      k.includes('fc1') || 
-      k.includes('output') ||
-      k.includes('feat')
-    );
-    if (!embeddingKey) embeddingKey = outputKeys[0]; // fallback al primero
-    
-    console.log(`🎯 Usando output: ${embeddingKey}`);
-    const outputTensor = outputs[embeddingKey];
-    let embedding = Array.from(outputTensor.data);
-
-    console.log(`📐 Dimensión del embedding: ${embedding.length}`);
-    
-    // Validar y ajustar dimensión si es necesario
-    if (embedding.length !== embeddingDim) {
-      console.warn(`Dimensión inesperada: ${embedding.length}, esperado: ${embeddingDim}`);
-      if (embedding.length > embeddingDim) {
-        embedding = embedding.slice(0, embeddingDim); // Truncar si es muy largo
       }
     }
-
-    // Normalizar L2
-    embedding = l2norm(embedding);
-
-    return embedding;
   };
 
-  // ==================== ENROLAMIENTO ====================
+  /* ---------- Inferencia ---------- */
+  const captureEmbedding = async () => {
+    const video = videoRef.current;
+    const lm = faceLandmarkerRef.current;
+    if (!video || !lm) throw new Error("Modelos no listos");
 
-  const handleEnroll = async () => {
-    // Validar que tenemos userData
-    if (!userData) {
-      alert('No hay datos del usuario para registrar');
-      return;
+    if (!video.videoWidth || !video.videoHeight) {
+      throw new Error("Video no tiene dimensiones válidas");
     }
 
-    console.log('🎯 Iniciando registro facial con datos:', userData);
+    const res = lm.detectForVideo(video, performance.now());
+    if (!res.faceLandmarks || res.faceLandmarks.length === 0) {
+      throw new Error("No se detectó rostro");
+    }
 
+    // Mock si no hay sesión real
+    if (!sessionRef.current || provider === "mock") {
+      const L = res.faceLandmarks[0];
+      const le = L[33],
+        re = L[263],
+        n = L[1];
+      const eyeD = Math.hypot(re.x - le.x, re.y - le.y);
+      const noseD = Math.hypot(n.x - (le.x + re.x) / 2, n.y - (le.y + re.y) / 2);
+      const seed = Math.floor((eyeD + noseD) * 10000) % 1000;
+      const v = Array.from({ length: embeddingDim }, (_, i) => {
+        const r = Math.sin(seed + i * 0.13) * Math.cos(seed + i * 0.07);
+        return r;
+      });
+      return l2norm(v);
+    }
+
+    // Con modelo
+    const L = res.faceLandmarks[0];
+    const aligned = alignByLandmarks(video, L);
+    if (!aligned) throw new Error("Error en alineación facial");
+
+    // Redimensiona por si acaso
+    if (aligned.width !== inputSize || aligned.height !== inputSize) {
+      const tmp = document.createElement("canvas");
+      tmp.width = inputSize;
+      tmp.height = inputSize;
+      const tctx = tmp.getContext("2d");
+      tctx.drawImage(aligned, 0, 0, inputSize, inputSize);
+      aligned.width = inputSize;
+      aligned.height = inputSize;
+    }
+
+    const data = toNCHWFloat32(aligned);
+    const tensor = new ort.Tensor("float32", data, [1, 3, inputSize, inputSize]);
+
+    const inputName = sessionRef.current.inputNames[0];
+    const outputs = await sessionRef.current.run({ [inputName]: tensor });
+
+    const keys = Object.keys(outputs);
+    let k =
+      keys.find((s) => /embedding|feat|fc1|output/i.test(s)) ?? keys[0];
+
+    let emb = Array.from(outputs[k].data);
+    if (emb.length !== embeddingDim) {
+      // Ajuste simple
+      emb = emb.length > embeddingDim ? emb.slice(0, embeddingDim) : emb.concat(new Array(embeddingDim - emb.length).fill(0));
+    }
+    return l2norm(emb);
+  };
+
+  /* ---------- Enrolamiento ---------- */
+  const handleEnroll = async () => {
+    if (!userData) {
+      setErrorMsg("Faltan datos de usuario");
+      return;
+    }
     try {
-      setStatus('inferencing');
+      setStatus("inferencing");
       setEnrollmentProgress(0);
       setResult(null);
 
-      // Pedir liveness check solo si está habilitado
       if (enableLivenessCheck) {
-        setLivenessCheck('blink');
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        setLivenessCheck("blink");
+        await new Promise((r) => setTimeout(r, 1200));
       }
-      
-      const embeddings = [];
 
-      // Capturar 3 embeddings con delay
+      const embs = [];
       for (let i = 0; i < 3; i++) {
-        if (enableLivenessCheck) {
-          setLivenessCheck(i % 2 === 0 ? 'blink' : 'turn');
-        }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (enableLivenessCheck) setLivenessCheck(i % 2 === 0 ? "blink" : "turn");
+        await new Promise((r) => setTimeout(r, 450));
 
-        // Verificar movimiento (liveness básico) - Solo advertencia, no bloqueante
         if (enableLivenessCheck) {
-          const video = videoRef.current;
-          const results = faceLandmarkerRef.current.detectForVideo(video, performance.now());
-          if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-            const moved = checkLivenessMovement(results.faceLandmarks[0]);
-            if (!moved && i > 0) {
-              console.warn('⚠️ Liveness check: No se detectó mucho movimiento, pero continuando...');
-            }
-          }
+          const res = faceLandmarkerRef.current.detectForVideo(
+            videoRef.current,
+            performance.now()
+          );
+          if (res.faceLandmarks?.length) checkLivenessMovement(res.faceLandmarks[0]);
         }
 
-        const emb = await captureEmbedding();
-        embeddings.push(emb);
+        embs.push(await captureEmbedding());
         setEnrollmentProgress(((i + 1) / 3) * 100);
       }
-
       setLivenessCheck(null);
 
-      console.log('📤 Enviando datos al backend:', { ...userData, embeddings: embeddings.length + ' embeddings' });
-
-      // Enviar al backend con todos los datos del usuario
-      const response = await fetch(endpoints.enroll, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...userData,
-          embeddings: embeddings
-        })
+      const payload = { ...userData, embeddings: embs };
+      const resp = await fetch(endpoints.enroll, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      console.log('📥 Respuesta del servidor:', response.status, response.statusText);
+      const text = await resp.text();
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${text}`);
 
-      // Verificar si la respuesta es exitosa
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Error HTTP:', response.status, errorText);
-        throw new Error(`Error del servidor (${response.status}): ${errorText}`);
-      }
-
-      // Intentar parsear JSON
-      const responseText = await response.text();
-      console.log('📝 Texto de respuesta:', responseText);
-      
       let data;
       try {
-        data = JSON.parse(responseText);
-        console.log('📊 Datos recibidos:', data);
-      } catch (parseError) {
-        console.error('❌ Error al parsear JSON:', parseError);
-        console.error('Respuesta recibida:', responseText);
-        throw new Error('Respuesta inválida del servidor: ' + responseText.substring(0, 100));
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Respuesta inválida del servidor");
       }
 
-      if (data.ok) {
-        console.log('✅ Registro exitoso! User ID:', data.user_id);
-        setResult({ type: 'enroll', success: true, user_id: data.user_id });
-        if (onEnrolled) {
-          console.log('🔔 Llamando callback onEnrolled con ID:', data.user_id);
-          onEnrolled(data.user_id);
-        } else {
-          console.warn('⚠️ No hay callback onEnrolled definido');
-        }
-      } else {
-        console.error('❌ Error en respuesta del servidor:', data.error);
-        throw new Error(data.error || 'Error en enrolamiento');
-      }
-
-      setStatus('ready');
-    } catch (err) {
-      console.error('Error en enrolamiento:', err);
-      setErrorMsg(err.message);
-      setStatus('error');
-      setTimeout(() => setStatus('ready'), 3000);
+      if (!data.ok) throw new Error(data.error || "Error en enrolamiento");
+      setResult({ type: "enroll", success: true, user_id: data.user_id });
+      onEnrolled && onEnrolled(data.user_id);
+      setStatus("ready");
+    } catch (e) {
+      setErrorMsg(e?.message || String(e));
+      setStatus("error");
+      setTimeout(() => setStatus("ready"), 3000);
     }
   };
 
-  // ==================== VERIFICACIÓN ====================
-
+  /* ---------- Verificación ---------- */
   const handleVerify = async () => {
     try {
-      setStatus('inferencing');
+      setStatus("inferencing");
       setResult(null);
 
-      // Pedir liveness check
-      setLivenessCheck('blink');
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setLivenessCheck("blink");
+      await new Promise((r) => setTimeout(r, 1200));
 
-      // Verificar movimiento
-      const video = videoRef.current;
-      const results = faceLandmarkerRef.current.detectForVideo(video, performance.now());
-      if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-        const moved = checkLivenessMovement(results.faceLandmarks[0]);
-        if (!moved) {
-          throw new Error('Liveness check falló: parpadea o muévete levemente');
-        }
+      const res = faceLandmarkerRef.current.detectForVideo(
+        videoRef.current,
+        performance.now()
+      );
+      if (res.faceLandmarks?.length) {
+        const moved = checkLivenessMovement(res.faceLandmarks[0]);
+        if (!moved) throw new Error("Liveness falló: parpadea o muévete levemente");
       }
-
       setLivenessCheck(null);
 
-      // Capturar embedding
-      const embedding = await captureEmbedding();
+      const emb = await captureEmbedding();
 
-      // Enviar al backend
-      const response = await fetch(endpoints.verify, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          emb: embedding,
-          pos_id: 'POS-WEB',
-          liveness_ok: true
-        })
+      const resp = await fetch(endpoints.verify, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emb, pos_id: "POS-WEB", liveness_ok: true }),
       });
+      const data = await resp.json();
 
-      const data = await response.json();
-
-      setResult({ 
-        type: 'verify', 
-        ...data,
-        success: data.match 
-      });
-
-      if (onVerified) onVerified(data);
-      setStatus('ready');
-    } catch (err) {
-      console.error('Error en verificación:', err);
-      setErrorMsg(err.message);
-      setStatus('error');
-      setTimeout(() => setStatus('ready'), 3000);
+      setResult({ type: "verify", ...data, success: !!data.match });
+      onVerified && onVerified(data);
+      setStatus("ready");
+    } catch (e) {
+      setErrorMsg(e?.message || String(e));
+      setStatus("error");
+      setTimeout(() => setStatus("ready"), 3000);
     }
   };
 
-  // ==================== RENDER ====================
-
+  /* ---------- UI ---------- */
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl">
-      {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Reconocimiento Facial
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Reconocimiento Facial</h2>
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">
             Estado: <span className="font-semibold">{status}</span>
@@ -781,14 +542,12 @@ export default function FaceCaptureONNX({
         </div>
       </div>
 
-      {/* Error Message */}
       {errorMsg && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-800 text-sm">{errorMsg}</p>
         </div>
       )}
 
-      {/* Video Container */}
       <div className="relative mb-6 bg-gray-900 rounded-lg overflow-hidden">
         <video
           ref={videoRef}
@@ -796,21 +555,19 @@ export default function FaceCaptureONNX({
           playsInline
           muted
           className="w-full h-auto"
-          style={{ transform: 'scaleX(-1)' }}
+          style={{ transform: "scaleX(-1)" }}
         />
         <canvas
           ref={canvasRef}
           className="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style={{ transform: 'scaleX(-1)' }}
+          style={{ transform: "scaleX(-1)" }}
         />
-        
-        {/* Face Guide Overlay */}
+
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-64 h-80 border-4 border-green-400 rounded-full opacity-50" />
         </div>
 
-        {/* Status Overlays */}
-        {status === 'noFace' && (
+        {status === "noFace" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
             <p className="text-white text-xl font-bold">No se detecta rostro</p>
           </div>
@@ -819,19 +576,19 @@ export default function FaceCaptureONNX({
         {livenessCheck && (
           <div className="absolute top-4 left-0 right-0 flex justify-center">
             <div className="bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold">
-              {livenessCheck === 'blink' ? '👁️ Parpadea' : '↔️ Gira levemente'}
+              {livenessCheck === "blink" ? "👁️ Parpadea" : "↔️ Gira levemente"}
             </div>
           </div>
         )}
 
-        {status === 'inferencing' && (
+        {status === "inferencing" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70">
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4" />
               <p className="text-white font-semibold">Procesando...</p>
               {enrollmentProgress > 0 && (
                 <div className="mt-2 bg-gray-700 rounded-full h-2 w-48 mx-auto overflow-hidden">
-                  <div 
+                  <div
                     className="bg-green-500 h-full transition-all"
                     style={{ width: `${enrollmentProgress}%` }}
                   />
@@ -842,8 +599,7 @@ export default function FaceCaptureONNX({
         )}
       </div>
 
-      {/* Camera Controls */}
-      {status === 'ready' && !streamRef.current && (
+      {status === "ready" && !streamRef.current && (
         <button
           onClick={startCamera}
           className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
@@ -861,7 +617,6 @@ export default function FaceCaptureONNX({
         </button>
       )}
 
-      {/* Información del cliente desde userData */}
       {userData && (
         <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="font-semibold text-blue-800 mb-2">Cliente a registrar:</h3>
@@ -877,52 +632,31 @@ export default function FaceCaptureONNX({
         </div>
       )}
 
-      {/* Action Buttons */}
       <div className="space-y-4">
         {userData ? (
-          /* Modo Registro - Botón principal para registrar */
           <button
             onClick={handleEnroll}
-            disabled={status !== 'ready' || !streamRef.current}
+            disabled={status !== "ready" || !streamRef.current}
             className="w-full text-white font-bold text-2xl py-6 rounded-2xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-2xl transform hover:scale-105"
             style={{
-              background: status === 'ready' && streamRef.current
-                ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 50%, #1E40AF 100%)'
-                : '#9CA3AF',
-            }}
-            onMouseEnter={(e) => {
-              if (status === 'ready' && streamRef.current) {
-                e.target.style.background = 'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #1E3A8A 100%)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (status === 'ready' && streamRef.current) {
-                e.target.style.background = 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 50%, #1E40AF 100%)';
-              }
+              background:
+                status === "ready" && streamRef.current
+                  ? "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 50%, #1E40AF 100%)"
+                  : "#9CA3AF",
             }}
           >
             📸 Registrar Cliente
           </button>
         ) : (
-          /* Modo Verificación - Botón principal para cobrar */
           <button
             onClick={handleVerify}
-            disabled={status !== 'ready' || !streamRef.current}
+            disabled={status !== "ready" || !streamRef.current}
             className="w-full text-white font-bold text-2xl py-6 rounded-2xl transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg hover:shadow-2xl transform hover:scale-105"
             style={{
-              background: status === 'ready' && streamRef.current
-                ? 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)'
-                : '#9CA3AF',
-            }}
-            onMouseEnter={(e) => {
-              if (status === 'ready' && streamRef.current) {
-                e.target.style.background = 'linear-gradient(135deg, #34D399 0%, #6EE7B7 50%, #A7F3D0 100%)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (status === 'ready' && streamRef.current) {
-                e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)';
-              }
+              background:
+                status === "ready" && streamRef.current
+                  ? "linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)"
+                  : "#9CA3AF",
             }}
           >
             💰 Cobrar
@@ -930,43 +664,52 @@ export default function FaceCaptureONNX({
         )}
       </div>
 
-      {/* Result Display */}
       {result && (
-        <div className={`mt-6 p-4 rounded-lg border-2 ${
-          result.success 
-            ? 'bg-green-50 border-green-300' 
-            : 'bg-red-50 border-red-300'
-        }`}>
+        <div
+          className={`mt-6 p-4 rounded-lg border-2 ${
+            result.success ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"
+          }`}
+        >
           <h3 className="font-bold text-lg mb-2">
-            {result.type === 'enroll' ? '📝 Enrolamiento' : '🔍 Verificación'}
+            {result.type === "enroll" ? "📝 Enrolamiento" : "🔍 Verificación"}
           </h3>
-          
-          {result.type === 'enroll' && result.success && (
+
+          {result.type === "enroll" && result.success && (
             <div className="text-sm space-y-1">
               <p>✅ Usuario enrolado exitosamente</p>
-              <p className="font-mono text-xs bg-white p-2 rounded">
-                ID: {result.user_id}
-              </p>
+              <p className="font-mono text-xs bg-white p-2 rounded">ID: {result.user_id}</p>
             </div>
           )}
 
-          {result.type === 'verify' && (
+          {result.type === "verify" && (
             <div className="text-sm space-y-1">
               {result.match ? (
                 <>
                   <p className="text-green-600 font-bold text-base">✅ Cliente reconocido</p>
                   {result.cliente && (
                     <>
-                      <p>Nombre: <span className="font-semibold">{result.cliente.nombre}</span></p>
-                      <p>Email: <span className="font-mono text-xs">{result.cliente.email}</span></p>
+                      <p>
+                        Nombre: <span className="font-semibold">{result.cliente.nombre}</span>
+                      </p>
+                      <p>
+                        Email: <span className="font-mono text-xs">{result.cliente.email}</span>
+                      </p>
                     </>
                   )}
-                  <p>Confianza: <span className="font-mono">{(result.score * 100).toFixed(1)}%</span></p>
+                  <p>
+                    Confianza:{" "}
+                    <span className="font-mono">
+                      {typeof result.score === "number" ? (result.score * 100).toFixed(1) : "—"}%
+                    </span>
+                  </p>
                 </>
               ) : (
                 <>
                   <p className="text-red-600 font-bold text-base">❌ Cliente no registrado</p>
-                  <p className="text-gray-500 text-xs">Score: {(result.score * 100).toFixed(1)}%</p>
+                  <p className="text-gray-500 text-xs">
+                    Score:{" "}
+                    {typeof result.score === "number" ? (result.score * 100).toFixed(1) : "—"}%
+                  </p>
                 </>
               )}
             </div>
@@ -974,8 +717,7 @@ export default function FaceCaptureONNX({
         </div>
       )}
 
-      {/* Loading State */}
-      {status === 'loadingModels' && (
+      {status === "loadingModels" && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4" />
           <p className="text-gray-600">Cargando modelos de IA...</p>

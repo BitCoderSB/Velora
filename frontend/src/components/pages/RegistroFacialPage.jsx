@@ -1,292 +1,241 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import FaceCaptureONNX from "@components/FaceCaptureONNX.jsx";
+import { useState } from 'react';
+import FaceCaptureSimple from '@components/FaceCaptureSimple.jsx';
 
-export default function RegistroFacialPage({ onBack, onComplete, userData }) {
-  const [registroExitoso, setRegistroExitoso] = useState(false);
-  const [userId, setUserId] = useState('');
+/**
+ * Página de registro facial integrada en el flujo de registro de usuarios
+ * Utiliza face-api.js para capturar y registrar características faciales
+ */
+export default function RegistroFacialPage({ userData, onBack, onComplete }) {
+  const [registrationStatus, setRegistrationStatus] = useState(null); // null | 'success' | 'error'
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Debug: Verificar que los datos del usuario están llegando
-  useEffect(() => {
-    console.log('RegistroFacialPage - userData recibida:', userData);
-    if (!userData) {
-      console.error('⚠️ RegistroFacialPage: No se recibieron datos del usuario');
+  const handleUserRegistered = async (registeredUser) => {
+    try {
+      setRegistrationStatus('success');
+      
+      // Combinar datos del usuario con el ID de registro facial
+      const completeData = {
+        ...userData,
+        faceId: registeredUser.id,
+        faceRegisteredAt: registeredUser.registeredAt,
+      };
+
+      console.log('✅ Usuario registrado con datos faciales:', completeData);
+
+      // Aquí puedes enviar los datos al backend
+      // await fetch('/api/usuarios/registrar', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(completeData)
+      // });
+
+      // Esperar un momento para mostrar el éxito antes de continuar
+      setTimeout(() => {
+        onComplete(completeData);
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ Error al completar registro:', error);
+      setRegistrationStatus('error');
+      setErrorMessage(error.message || 'Error al completar el registro');
     }
-  }, [userData]);
-
-  const handleEnrolled = (userIdGenerado) => {
-    console.log('✅ Cliente registrado con ID:', userIdGenerado);
-    setUserId(userIdGenerado);
-    setRegistroExitoso(true);
-    
-    // Redirigir automáticamente después de 3 segundos
-    setTimeout(() => {
-      console.log('⏰ Redirigiendo a dashboard...');
-      if (onComplete) {
-        onComplete({
-          ...userData,
-          userId: userIdGenerado
-        });
-      }
-    }, 3000);
   };
-
-  const resetForm = () => {
-    setRegistroExitoso(false);
-    setUserId('');
-  };
-
-  // Si no hay datos del usuario, mostrar mensaje de error
-  if (!userData) {
-    return (
-      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #F0E68C 100%)' }}>
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 p-12 text-center max-w-md">
-          <div className="text-6xl mb-6">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Error de Datos
-          </h2>
-          <p className="text-gray-600 mb-6">
-            No se encontraron los datos de registro. Por favor, completa el registro desde el inicio.
-          </p>
-          <button
-            onClick={onBack}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-300"
-          >
-            ← Volver
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (registroExitoso) {
-    return (
-      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto" style={{ background: 'linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #F0E68C 100%)' }}>
-        {/* Background animado */}
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            animate={{
-              x: [0, 100, 0],
-              y: [0, -100, 0],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 bg-coral-300/30 rounded-full blur-3xl"
-            style={{ backgroundColor: 'rgba(255, 127, 80, 0.08)' }}
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,127,80,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,127,80,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        </div>
-
-        {/* Página de éxito */}
-        <div className="relative z-10 min-h-screen flex items-center justify-center px-6">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 p-12 text-center max-w-md"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-6xl mb-6"
-            >
-              ✅
-            </motion.div>
-            
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              ¡Registro Exitoso!
-            </h2>
-            
-            <p className="text-gray-600 mb-2">
-              <span className="font-semibold">{userData?.firstName} {userData?.lastName}</span> ha sido registrado correctamente.
-            </p>
-            
-            <p className="text-sm text-gray-500 mb-2">
-              Email: {userData?.email}
-            </p>
-            
-            <p className="text-sm text-gray-500 mb-4">
-              ID: {userId}
-            </p>
-
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <p className="text-green-700 text-sm">
-                🎉 Tu cuenta ha sido creada exitosamente con reconocimiento facial
-              </p>
-              <p className="text-green-600 text-xs mt-2">
-                Redirigiendo al dashboard en 3 segundos...
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  if (onComplete) {
-                    onComplete({
-                      ...userData,
-                      userId: userId
-                    });
-                  }
-                }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-105"
-              >
-                ✨ Ir al Dashboard Ahora
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto" style={{ background: 'linear-gradient(135deg, #FFE5B4 0%, #FFB6C1 50%, #F0E68C 100%)' }}>
-      {/* Animated background elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Gradient orbs */}
-        <motion.div
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-coral-300/30 rounded-full blur-3xl"
-          style={{ backgroundColor: 'rgba(255, 127, 80, 0.08)' }}
-        />
-        <motion.div
-          animate={{
-            x: [0, -150, 0],
-            y: [0, 100, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-3/4 right-1/4 w-80 h-80 bg-purple-200/30 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            x: [0, 80, 0],
-            y: [0, -80, 0],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-1/2 right-1/3 w-64 h-64 bg-green-200/25 rounded-full blur-3xl"
-        />
-        
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,127,80,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,127,80,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      </div>
-
-      {/* Header */}
-      <div className="relative z-10 pt-8 px-6">
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
-        >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-3 sm:p-4 md:p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-4 sm:mb-6">
+          <button
+            onClick={onBack}
+            className="mb-3 sm:mb-4 px-3 sm:px-4 py-2 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-lg transition flex items-center gap-2 text-sm sm:text-base"
+          >
+            <span>←</span> Volver
+          </button>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
             📸 Registro Facial
           </h1>
-          <p className="text-lg text-gray-600">
-            Registra un nuevo cliente para reconocimiento automático
+          <p className="text-sm sm:text-base text-slate-300">
+            Último paso: registra tu rostro para poder usar el sistema de pagos
           </p>
-        </motion.div>
-      </div>
+        </div>
 
-      {/* Main content */}
-      <div className="relative z-10 min-h-screen pt-8 pb-8 px-6">
-        <motion.div
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 mx-auto max-w-4xl"
-        >
-          <div className="p-8 md:p-12">
-            
-            {/* Resumen de datos del cliente */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                📝 Resumen de tu Información
-              </h2>
-              
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-semibold text-gray-700">Nombre:</span>{' '}
-                    <span className="text-gray-900">{userData?.firstName} {userData?.lastName}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Email:</span>{' '}
-                    <span className="text-gray-900">{userData?.email}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Ciudad:</span>{' '}
-                    <span className="text-gray-900">{userData?.city}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">País:</span>{' '}
-                    <span className="text-gray-900">{userData?.country}</span>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className="font-semibold text-gray-700">Wallet URL:</span>{' '}
-                    <span className="text-gray-900 break-all">{userData?.walletUrl}</span>
-                  </div>
-                </div>
+        {/* Progress Indicator - Responsive */}
+        <div className="mb-4 sm:mb-6">
+          {/* Desktop/Tablet Version */}
+          <div className="hidden sm:flex items-center justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+                ✓
               </div>
+              <span className="text-slate-400 text-xs sm:text-sm">Datos personales</span>
             </div>
+            <div className="w-8 sm:w-12 h-0.5 bg-green-500"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+                ✓
+              </div>
+              <span className="text-slate-400 text-xs sm:text-sm">Wallet</span>
+            </div>
+            <div className="w-8 sm:w-12 h-0.5 bg-blue-500"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                3
+              </div>
+              <span className="text-white text-xs sm:text-sm font-semibold">Reconocimiento facial</span>
+            </div>
+          </div>
 
-            {/* Componente de captura facial */}
-            <div className="border-t border-gray-200 pt-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                🎯 Captura Facial
-              </h2>
-              
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  ℹ️ Tu rostro será utilizado para autenticación biométrica segura en futuras transacciones.
+          {/* Mobile Version - Vertical */}
+          <div className="sm:hidden flex flex-col items-center gap-2">
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                ✓
+              </div>
+              <span className="text-slate-400 text-sm">Datos personales</span>
+            </div>
+            <div className="w-0.5 h-4 bg-green-500 ml-4"></div>
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                ✓
+              </div>
+              <span className="text-slate-400 text-sm">Wallet</span>
+            </div>
+            <div className="w-0.5 h-4 bg-blue-500 ml-4"></div>
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                3
+              </div>
+              <span className="text-white text-sm font-semibold">Reconocimiento facial</span>
+            </div>
+          </div>
+        </div>
+
+        {/* User Info Card - Responsive */}
+        {userData && (
+          <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-slate-800 border border-slate-700 rounded-xl">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <span>👤</span> Datos del Usuario
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-400">Nombre completo</p>
+                <p className="text-sm sm:text-base text-white font-medium break-words">
+                  {userData.firstName} {userData.lastName}
                 </p>
               </div>
-              
-              <FaceCaptureONNX
-                modelPath="/models/arcface.onnx"
-                embeddingDim={512}
-                endpoints={{
-                  enroll: '/api/face/enroll',
-                  verify: '/api/face/verify'
-                }}
-                onEnrolled={handleEnrolled}
-                enableLivenessCheck={false}
-                userData={userData}
-              />
-            </div>
-            
-            {/* Botón de volver */}
-            {onBack && (
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <button
-                  onClick={onBack}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-300"
-                >
-                  ← Volver al Menú Principal
-                </button>
+              <div>
+                <p className="text-xs sm:text-sm text-slate-400">Email</p>
+                <p className="text-sm sm:text-base text-white font-medium break-all">{userData.email}</p>
               </div>
-            )}
+              <div>
+                <p className="text-xs sm:text-sm text-slate-400">Ciudad</p>
+                <p className="text-sm sm:text-base text-white font-medium">
+                  {userData.city}, {userData.country}
+                </p>
+              </div>
+              {userData.paymentPointer && (
+                <div className="sm:col-span-2">
+                  <p className="text-xs sm:text-sm text-slate-400">Payment Pointer</p>
+                  <p className="text-xs sm:text-sm text-white font-mono break-all">{userData.paymentPointer}</p>
+                </div>
+              )}
+            </div>
           </div>
-        </motion.div>
+        )}
+
+        {/* Instructions - Responsive */}
+        {!registrationStatus && (
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-900/30 border border-blue-700 rounded-lg">
+            <h4 className="text-sm sm:text-base font-semibold text-blue-300 mb-2 flex items-center gap-2">
+              <span>💡</span> Instrucciones
+            </h4>
+            <ol className="text-xs sm:text-sm text-blue-200 space-y-1 list-decimal list-inside pl-1">
+              <li>Haz clic en "Activar Cámara"</li>
+              <li>Coloca tu rostro frente a la cámara dentro del óvalo guía</li>
+              <li>Asegúrate de tener buena iluminación</li>
+              <li>Cuando detecte tu rostro, haz clic en "Registrar Usuario"</li>
+              <li>El sistema capturará múltiples imágenes para mayor precisión</li>
+              <li>Espera la confirmación</li>
+            </ol>
+          </div>
+        )}
+
+        {/* Success Message - Responsive */}
+        {registrationStatus === 'success' && (
+          <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-green-900/30 border border-green-700 rounded-lg animate-pulse">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 text-center sm:text-left">
+              <div className="text-4xl sm:text-6xl">✅</div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-green-300 mb-1 sm:mb-2">
+                  ¡Registro Completado!
+                </h3>
+                <p className="text-sm sm:text-base text-green-200">
+                  Tu rostro ha sido registrado exitosamente. Redirigiendo...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message - Responsive */}
+        {registrationStatus === 'error' && (
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-900/30 border border-red-700 rounded-lg">
+            <h3 className="text-base sm:text-lg font-bold text-red-300 mb-2">❌ Error</h3>
+            <p className="text-sm sm:text-base text-red-200">{errorMessage}</p>
+            <button
+              onClick={() => {
+                setRegistrationStatus(null);
+                setErrorMessage('');
+              }}
+              className="mt-3 px-3 sm:px-4 py-2 bg-red-700 hover:bg-red-600 active:bg-red-500 text-white text-sm sm:text-base rounded-lg transition"
+            >
+              Intentar de nuevo
+            </button>
+          </div>
+        )}
+
+        {/* Face Capture Component */}
+        {!registrationStatus && (
+          <FaceCaptureSimple
+            modelsPath="/models"
+            threshold={0.6}
+            userData={userData}
+            onUserRegistered={handleUserRegistered}
+            onUserRecognized={null}
+          />
+        )}
+
+        {/* Security Notice - Responsive */}
+        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+          <h4 className="text-sm sm:text-base font-semibold text-slate-300 mb-2 flex items-center gap-2">
+            <span>🔒</span> Privacidad y Seguridad
+          </h4>
+          <ul className="text-xs sm:text-sm text-slate-400 space-y-1">
+            <li>• Tus datos biométricos están protegidos y encriptados</li>
+            <li>• Solo se almacenan descriptores faciales, no imágenes</li>
+            <li>• La información no se comparte con terceros</li>
+            <li>• Cumplimos con las regulaciones de protección de datos</li>
+            <li>• Puedes solicitar la eliminación de tus datos en cualquier momento</li>
+          </ul>
+        </div>
+
+        {/* Technical Info - Responsive */}
+        <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-slate-900 border border-slate-700 rounded-lg">
+          <details className="cursor-pointer">
+            <summary className="text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-300 py-1">
+              🔧 Información técnica
+            </summary>
+            <ul className="mt-2 text-xs text-slate-500 space-y-1 pl-1">
+              <li>• <strong>Tecnología:</strong> face-api.js con TensorFlow.js</li>
+              <li>• <strong>Modelo:</strong> FaceRecognitionNet (128 dimensiones)</li>
+              <li>• <strong>Detección:</strong> TinyFaceDetector (rápido y preciso)</li>
+              <li>• <strong>Captura:</strong> 3 descriptores para mayor precisión</li>
+              <li>• <strong>Comparación:</strong> Distancia euclidiana (umbral: 0.6)</li>
+              <li>• <strong>Procesamiento:</strong> 100% en el navegador (privacidad)</li>
+            </ul>
+          </details>
+        </div>
       </div>
     </div>
   );
